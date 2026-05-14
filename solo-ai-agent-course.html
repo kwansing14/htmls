@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The $1M+ Solo AI Agent Business — Course Breakdown</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-card: #131316;
+    --bg-elev: #1a1a1f;
+    --border: #26262d;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --accent: #c8ff2f;
+    --accent-soft: rgba(200, 255, 47, 0.12);
+    --warn: #ffb547;
+    --danger: #ff5b6b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(200,255,47,0.10), transparent 60%),
+      linear-gradient(180deg, #161618 0%, #0f0f12 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 720px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 500; }
+
+  .video-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 22px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #1d1d22;
+    color: var(--text);
+    font-size: 14px;
+    transition: background 0.15s;
+  }
+  .video-link:hover { background: #25252b; text-decoration: none; }
+
+  /* Section */
+  section { margin-bottom: 56px; }
+  h2 {
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 17px; margin: 18px 0 8px; }
+  p { color: #d1d1d8; margin-bottom: 12px; }
+
+  /* Phase cards */
+  .phases { display: grid; gap: 14px; }
+  .phase {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 22px;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .phase:hover { transform: translateY(-1px); border-left-color: #fff; }
+  .phase-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-bottom: 8px;
+  }
+  .phase-num {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  .phase-time {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .phase-title { font-size: 18px; font-weight: 600; }
+  .phase-body { color: #b8b8c2; font-size: 15px; }
+  .phase-body ul { margin-top: 10px; padding-left: 18px; }
+  .phase-body li { margin-bottom: 6px; }
+
+  /* Stack grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .tool {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .tool-name { font-weight: 600; font-size: 15px; }
+  .tool-desc { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* Pills */
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .pill {
+    display: inline-block;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: #cfcfd6;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-family: ui-monospace, monospace;
+  }
+  .pill.good { color: var(--accent); border-color: rgba(200,255,47,0.4); }
+  .pill.bad { color: var(--danger); border-color: rgba(255,91,107,0.4); }
+
+  /* Callout */
+  .callout {
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, #1a1a1f 0%, #15151a 100%);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 14px 0;
+  }
+  .callout.warn { border-color: rgba(255,181,71,0.35); background: rgba(255,181,71,0.06); }
+  .callout-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .callout.warn .callout-title { color: var(--warn); }
+
+  /* Steps (guide) */
+  .steps { counter-reset: step; display: grid; gap: 14px; }
+  .step {
+    counter-increment: step;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 18px 64px;
+    position: relative;
+  }
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: 18px; top: 18px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0a0a0b;
+    font-weight: 700;
+    display: grid; place-items: center;
+    font-size: 14px;
+  }
+  .step h3 { margin: 0 0 6px; font-size: 16px; }
+  .step p { font-size: 14px; color: #b8b8c2; margin: 0; }
+
+  /* Footer */
+  footer {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* Two-col on wide */
+  @media (min-width: 760px) {
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  }
+
+  /* Deep-dive cards (collapsible) */
+  details.deep {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  details.deep[open] {
+    border-color: rgba(200, 255, 47, 0.25);
+    background: linear-gradient(180deg, #15151a 0%, #131316 100%);
+  }
+  details.deep > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    user-select: none;
+    transition: background 0.12s;
+  }
+  details.deep > summary::-webkit-details-marker { display: none; }
+  details.deep > summary:hover { background: rgba(255, 255, 255, 0.02); }
+
+  .summary-left {
+    display: flex; align-items: center; gap: 12px;
+    min-width: 0; flex: 1;
+  }
+  .chev {
+    width: 14px; height: 14px;
+    flex-shrink: 0;
+    color: var(--accent);
+    transition: transform 0.2s ease;
+  }
+  details.deep[open] > summary .chev { transform: rotate(90deg); }
+
+  .deep-body {
+    padding: 0 22px 22px;
+    animation: drawer 0.22s ease;
+  }
+  @keyframes drawer {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .deep-title { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .deep-tag {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .deep-sub { color: var(--muted); font-size: 14px; margin: 4px 0 14px; }
+  .deep h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin: 16px 0 8px;
+    font-weight: 600;
+  }
+  .deep p { font-size: 14.5px; color: #c8c8d0; }
+
+  /* Code blocks */
+  pre {
+    background: #0d0d10;
+    border: 1px solid #1f1f25;
+    border-radius: 10px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #d8d8e0;
+    margin: 6px 0 4px;
+  }
+  pre .c { color: #6c6c7a; font-style: italic; }
+  pre .k { color: #ff79c6; }
+  pre .s { color: #f1fa8c; }
+  pre .n { color: #c8ff2f; }
+  pre .b { color: #8be9fd; }
+  code:not(pre code) {
+    background: #1d1d22;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 12.5px;
+    color: #f1fa8c;
+  }
+  .lang-tag {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--muted);
+    background: #1a1a1f;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+
+  .deep-grid {
+    display: grid; gap: 8px;
+    grid-template-columns: 1fr;
+    margin-top: 6px;
+  }
+  @media (min-width: 760px) {
+    .deep-grid.two { grid-template-columns: 1fr 1fr; }
+  }
+  .deep-grid .cell {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .deep-grid .cell strong { color: var(--accent); font-weight: 600; }
+
+  .group-head {
+    display: flex; align-items: center; gap: 10px;
+    margin: 32px 0 14px;
+  }
+  .group-head .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .group-head h3 {
+    margin: 0; font-size: 16px;
+    text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--text);
+  }
+  .group-head .line {
+    flex: 1; height: 1px; background: var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="eyebrow">Course Breakdown · 47 min</span>
+    <h1>The $1M+ Solo AI Agent Business <span style="color:var(--muted)">— Full Course</span></h1>
+    <p class="subtitle">
+      Greg Isenberg interviews Nick (Orgo) on building a one-person managed AI-agent
+      business: the offer, the verticals, the agent architecture, the live demo.
+    </p>
+    <div class="meta">
+      <span>By <strong>Greg Isenberg</strong></span>
+      <span>· Featuring <strong>Nick — Orgo / Hermes Agent</strong></span>
+      <span>· Stack: <strong>Hermes · Orgo · Codex · Claude Code · Obsidian</strong></span>
+    </div>
+    <a class="video-link" href="https://www.youtube.com/watch?v=BI-MNjm1tTQ" target="_blank" rel="noopener">
+      ▶ Watch on YouTube
+    </a>
+  </header>
+
+  <!-- TL;DR -->
+  <section>
+    <h2>The TL;DR</h2>
+    <p>
+      Sell businesses an <strong>"AI employee"</strong> — not an automation, not a SaaS.
+      Charge <strong>$5K–$10K/month</strong> for unlimited agents, unlimited usage, monitoring,
+      security and ongoing changes. Run everything on cloud computers (Orgo) controlled by a
+      Telegram-driven meta-agent. One person can manage 20+ customers.
+    </p>
+    <div class="callout">
+      <div class="callout-title">Why this works in 2026</div>
+      <p style="margin:0">
+        Frontier models are now reliable enough at tool-calling that an agent can hold down a
+        real seat in a small business. The bottleneck has shifted from <em>capability</em> to
+        <em>distribution + ops</em> — exactly what a solo operator can own.
+      </p>
+    </div>
+  </section>
+
+  <!-- 9 PHASES -->
+  <section>
+    <h2>The 9 Phases of the Course</h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 01</span> · <span class="phase-title">Intro</span></div>
+          <span class="phase-time">0:00 – 2:54</span>
+        </div>
+        <div class="phase-body">
+          Why a solo AI-agent business is the cleanest cash-flow play of 2026. Nick frames the
+          opportunity: SMBs want outcomes, not chatbots.
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 02</span> · <span class="phase-title">Offer Design</span></div>
+          <span class="phase-time">2:54 – 6:38</span>
+        </div>
+        <div class="phase-body">
+          The winning offer is <strong>"unlimited"</strong>: unlimited agents, unlimited usage,
+          unlimited monitoring, security and ongoing changes — flat fee per month. "Unlimited"
+          removes the buyer's biggest friction (per-seat math) and makes you the obvious choice.
+          <ul>
+            <li>Price: <strong>~$5K–$10K / month</strong></li>
+            <li>Most customers actually run 1–3 agents → margins are huge</li>
+            <li>You absorb infra cost; they get peace of mind</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 03</span> · <span class="phase-title">Positioning — Sell an "AI Employee"</span></div>
+          <span class="phase-time">6:38 – 7:26</span>
+        </div>
+        <div class="phase-body">
+          Don't sell <em>agents</em>, <em>automations</em>, or <em>AI</em>. Sell a <strong>headcount
+          replacement</strong>. The buyer compares you to a $60K/yr hire, not to a $20/mo SaaS.
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 04</span> · <span class="phase-title">Vertical Selection</span></div>
+          <span class="phase-time">7:26 – 14:54</span>
+        </div>
+        <div class="phase-body">
+          Pick a boring, legacy industry that already pays salaries for repetitive desk work.
+          <div class="pills">
+            <span class="pill good">Marketing agencies</span>
+            <span class="pill good">Law firms</span>
+            <span class="pill good">Insurance</span>
+            <span class="pill good">Manufacturing</span>
+            <span class="pill good">Wholesale / distribution</span>
+            <span class="pill good">Real estate</span>
+          </div>
+          <div class="pills" style="margin-top:10px">
+            <span class="pill bad">Avoid: Healthcare</span>
+            <span class="pill bad">Avoid: Regulated finance</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 05</span> · <span class="phase-title">Customer Acquisition</span></div>
+          <span class="phase-time">14:54 – 17:51</span>
+        </div>
+        <div class="phase-body">
+          Content + warm outbound. Document one workflow per week as a Loom; that becomes both
+          marketing and the spec for the next agent. Inbound leads close themselves once they
+          watch the demo.
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 06</span> · <span class="phase-title">Tech Stack (Customer-Facing)</span></div>
+          <span class="phase-time">17:51 – 20:49</span>
+        </div>
+        <div class="phase-body">
+          What the agent <em>uses</em> on behalf of the customer — same tools a human assistant
+          would have. See the stack section below.
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 07</span> · <span class="phase-title">Agent Architecture</span></div>
+          <span class="phase-time">20:49 – 25:51</span>
+        </div>
+        <div class="phase-body">
+          One <strong>workspace per customer</strong>, one <strong>cloud computer per agent</strong>,
+          and a <strong>meta-agent</strong> that spawns and supervises the workforce. The
+          meta-agent is controlled from Telegram so you can ops from your phone.
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 08</span> · <span class="phase-title">Model Selection</span></div>
+          <span class="phase-time">25:51 – 27:08</span>
+        </div>
+        <div class="phase-body">
+          Not all models fit all jobs. Pick per task class.
+          <ul>
+            <li><strong>GPT 5.5</strong> — default for tool-calling agents</li>
+            <li><strong>GLM 5.1 / Kimmy</strong> — light tasks, cheap parallel work</li>
+            <li><strong>Opus 4.7</strong> — long-horizon coding & meta-agent reasoning</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-head">
+          <div><span class="phase-num">PHASE 09</span> · <span class="phase-title">Live Demo & Operations</span></div>
+          <span class="phase-time">28:14 – 45:28</span>
+        </div>
+        <div class="phase-body">
+          Nick screen-shares Orgo: spinning up a workspace, installing Hermes on a fresh VM via
+          the meta-agent, watching it patch its own broken sub-agents, and routing failures into
+          email + Telegram for human-in-the-loop fixes. This is the part to actually pause and
+          rewatch.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section>
+    <h2>The Implementation Stack</h2>
+
+    <h3>Agent runtime &amp; orchestration</h3>
+    <div class="grid">
+      <div class="tool"><div class="tool-name">Orgo</div><div class="tool-desc">Cloud computers — one VM per agent. The substrate everything else runs on.</div></div>
+      <div class="tool"><div class="tool-name">Hermes Agent</div><div class="tool-desc">The agent runtime installed inside each Orgo VM.</div></div>
+      <div class="tool"><div class="tool-name">Composio</div><div class="tool-desc">Pre-built tool/integration layer the agent calls into.</div></div>
+      <div class="tool"><div class="tool-name">Agent Mail</div><div class="tool-desc">Email identity + observability per agent.</div></div>
+    </div>
+
+    <h3 style="margin-top:24px">Tools the agent uses (like a human would)</h3>
+    <div class="grid">
+      <div class="tool"><div class="tool-name">Granola</div><div class="tool-desc">Meeting notes</div></div>
+      <div class="tool"><div class="tool-name">Trello / Asana</div><div class="tool-desc">Task & project boards</div></div>
+      <div class="tool"><div class="tool-name">Loom</div><div class="tool-desc">Video updates</div></div>
+      <div class="tool"><div class="tool-name">Superhuman</div><div class="tool-desc">Email client surface</div></div>
+      <div class="tool"><div class="tool-name">Obsidian</div><div class="tool-desc">Long-term agent memory & notes</div></div>
+    </div>
+
+    <h3 style="margin-top:24px">Builder tools (yours, not the agent's)</h3>
+    <div class="grid">
+      <div class="tool"><div class="tool-name">Codex</div><div class="tool-desc">Build & wire integrations</div></div>
+      <div class="tool"><div class="tool-name">Claude Code</div><div class="tool-desc">Long-horizon coding & meta-agent logic (Opus 4.7)</div></div>
+      <div class="tool"><div class="tool-name">MCPs (Perplexity, Context7, X)</div><div class="tool-desc">Live docs + context for agents</div></div>
+    </div>
+  </section>
+
+  <!-- STACK DEEP DIVE -->
+  <section>
+    <h2>Stack Deep Dive — How to Actually Use Each Tool</h2>
+    <p style="color:var(--muted); font-size:14px; margin-bottom:6px">
+      The video frames each tool at a high level; below is the practical layer — install command,
+      a minimal working snippet, the role it plays in the agent business, and where it slots into
+      the meta-agent → worker-agent topology. Code is illustrative; check official docs for current
+      auth and field names before shipping.
+    </p>
+
+    <!-- ============ GROUP: RUNTIME & ORCHESTRATION ============ -->
+    <div class="group-head">
+      <span class="dot"></span>
+      <h3>1 · Runtime &amp; Orchestration</h3>
+      <span class="line"></span>
+    </div>
+
+    <!-- ORGO -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Orgo — Cloud Computers for Agents</div>
+        </div>
+        <span class="deep-tag">SUBSTRATE</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">A full Ubuntu/Windows VM per agent, provisioned in &lt;500ms, controllable via screenshot + mouse + keyboard + bash. This is what every worker agent <em>lives inside</em>.</div>
+
+      <h4>Use case in the business</h4>
+      <p>One Orgo VM = one "AI employee." It has its own desktop, its own browser session, its own logged-in apps (Superhuman, Trello, Granola, Obsidian). The meta-agent spins these up, and each customer gets their own pool.</p>
+
+      <h4>Install</h4>
+      <span class="lang-tag">bash</span>
+<pre>pip install orgo
+export ORGO_API_KEY=sk_live_xxx</pre>
+
+      <h4>Minimal working example</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> orgo <span class="k">import</span> Computer
+
+<span class="c"># spin up a fresh cloud desktop</span>
+computer = Computer()
+
+<span class="c"># option A: drive it yourself</span>
+computer.bash(<span class="s">"sudo apt-get install -y firefox"</span>)
+computer.left_click(x=500, y=300)
+computer.type(<span class="s">"hello from the agent"</span>)
+shot = computer.screenshot()  <span class="c"># PIL image, hand to a vision model</span>
+
+<span class="c"># option B: hand the wheel to a model</span>
+computer.prompt(<span class="s">"Open Gmail and reply to the latest email from Acme Corp"</span>)
+
+computer.shutdown()</pre>
+
+      <h4>Where it slots in</h4>
+      <div class="deep-grid two">
+        <div class="cell"><strong>Meta-agent calls:</strong> <code>client.computers.create()</code> per new worker.</div>
+        <div class="cell"><strong>Worker agent runs:</strong> Hermes inside the VM, looping on tools.</div>
+      </div>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://docs.orgo.ai/" target="_blank" rel="noopener">docs.orgo.ai</a> · PyPI: <a href="https://pypi.org/project/orgo/" target="_blank" rel="noopener">pypi.org/project/orgo</a></p>
+      </div>
+    </details>
+
+    <!-- HERMES -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Hermes Agent — The Runtime Inside Each VM</div>
+        </div>
+        <span class="deep-tag">RUNTIME</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Open-source autonomous agent from Nous Research with persistent memory, automatic skill creation, and multi-platform reach. Installs into Linux/macOS/WSL2 with one curl.</div>
+
+      <h4>Use case in the business</h4>
+      <p>Hermes is the loop running inside an Orgo VM. It owns the agent's identity, holds memory between sessions, and exposes a chat/voice/CLI surface. You don't build the loop — you ship skills into it.</p>
+
+      <h4>Install (run inside the Orgo VM)</h4>
+      <span class="lang-tag">bash</span>
+<pre>curl -fsSL https://hermes-agent.org/install.sh | bash
+hermes init --name "acme-sdr-agent"
+hermes start --model gpt-5.5</pre>
+
+      <h4>Adding a custom skill</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="c"># ~/.hermes/skills/triage_inbox.py</span>
+<span class="k">from</span> hermes <span class="k">import</span> skill, memory
+
+<span class="n">@skill</span>(name=<span class="s">"triage_inbox"</span>, schedule=<span class="s">"*/10 * * * *"</span>)
+<span class="k">def</span> triage_inbox(ctx):
+    emails = ctx.tools.email.list(unread=True)
+    <span class="k">for</span> e <span class="k">in</span> emails:
+        <span class="k">if</span> <span class="s">"invoice"</span> <span class="k">in</span> e.subject.lower():
+            ctx.tools.trello.create_card(list_id=memory.get(<span class="s">"ap_list"</span>),
+                                         title=e.subject, body=e.body)
+            e.archive()</pre>
+
+      <h4>Where it slots in</h4>
+      <div class="deep-grid two">
+        <div class="cell"><strong>Memory:</strong> survives restarts → reuses customer context.</div>
+        <div class="cell"><strong>Skills folder:</strong> versioned per customer in your repo.</div>
+      </div>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://hermes-agent.nousresearch.com/docs/" target="_blank" rel="noopener">hermes-agent.nousresearch.com/docs</a></p>
+      </div>
+    </details>
+
+    <!-- COMPOSIO -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Composio — 1000+ Tool Integrations, One SDK</div>
+        </div>
+        <span class="deep-tag">TOOLBELT</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Pre-built, authenticated tool layer for GitHub, Slack, Notion, Trello, Asana, Gmail, HubSpot, Stripe, etc. Handles OAuth, refresh tokens, scopes, and rate limits — the boring 80% of integration work.</div>
+
+      <h4>Use case in the business</h4>
+      <p>Instead of writing a Trello client + an Asana client + a Slack client, you ask Composio for tools by toolkit name and pass them straight to your agent. Per-customer auth is keyed by <code>user_id</code> — perfect for multi-tenant.</p>
+
+      <h4>Install</h4>
+      <span class="lang-tag">bash</span>
+<pre>pip install composio_openai
+composio login
+composio add trello asana gmail granola</pre>
+
+      <h4>Minimal working example</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> composio_openai <span class="k">import</span> ComposioToolSet, App
+<span class="k">from</span> openai <span class="k">import</span> OpenAI
+
+toolset = ComposioToolSet()
+tools = toolset.get_tools(apps=[App.TRELLO, App.GMAIL])
+
+client = OpenAI()
+resp = client.chat.completions.create(
+    model=<span class="s">"gpt-5.5"</span>,
+    tools=tools,
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>,
+               <span class="s">"content"</span>: <span class="s">"Read today's emails and create Trello cards for any action items"</span>}],
+)
+toolset.handle_tool_calls(resp, entity_id=<span class="s">"customer_acme"</span>)</pre>
+
+      <h4>Where it slots in</h4>
+      <div class="deep-grid two">
+        <div class="cell"><strong>Per-customer auth:</strong> pass <code>entity_id="customer_xyz"</code>.</div>
+        <div class="cell"><strong>Tool discovery:</strong> agent can query toolkits at runtime.</div>
+      </div>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://docs.composio.dev/docs" target="_blank" rel="noopener">docs.composio.dev</a> · GitHub: <a href="https://github.com/ComposioHQ/composio" target="_blank" rel="noopener">ComposioHQ/composio</a></p>
+      </div>
+    </details>
+
+    <!-- AGENT MAIL -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">AgentMail — Email Identity Per Agent</div>
+        </div>
+        <span class="deep-tag">EMAIL</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">API-first email built for two-way agent conversations. Each agent gets its own real inbox (its own <code>@yourdomain</code> address), with sockets for real-time inbound and SDKs for outbound + threading.</div>
+
+      <h4>Use case in the business</h4>
+      <p>Customer #7's SDR agent needs <code>sdr@acme.yourdomain.com</code>. Customer #8's support agent needs <code>support@beta.yourdomain.com</code>. AgentMail gives you thousands of inboxes programmatically — no Gmail account juggling.</p>
+
+      <h4>Install</h4>
+      <span class="lang-tag">bash</span>
+<pre>pip install agentmail
+export AGENTMAIL_API_KEY=...</pre>
+
+      <h4>Minimal working example</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> agentmail <span class="k">import</span> AgentMail
+
+mail = AgentMail(api_key=os.environ[<span class="s">"AGENTMAIL_API_KEY"</span>])
+
+<span class="c"># 1. provision an inbox for the new agent</span>
+inbox = mail.inboxes.create(username=<span class="s">"sdr-acme"</span>, domain=<span class="s">"yourdomain.com"</span>)
+
+<span class="c"># 2. send</span>
+mail.messages.send(inbox_id=inbox.id, to=<span class="s">"lead@prospect.com"</span>,
+                   subject=<span class="s">"Quick question"</span>, text=<span class="s">"Hi — saw your post..."</span>)
+
+<span class="c"># 3. listen for replies (websocket)</span>
+<span class="k">with</span> mail.sockets.connect(inbox_id=inbox.id) <span class="k">as</span> sock:
+    <span class="k">for</span> event <span class="k">in</span> sock:
+        <span class="k">if</span> event.type == <span class="s">"message.received"</span>:
+            agent.handle_reply(event.message)  <span class="c"># hand to Hermes</span></pre>
+
+      <h4>Where it slots in</h4>
+      <div class="deep-grid two">
+        <div class="cell"><strong>Observability:</strong> every agent action leaves an email trail.</div>
+        <div class="cell"><strong>Failure routing:</strong> stuck agent emails meta-agent.</div>
+      </div>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://docs.agentmail.to/quickstart" target="_blank" rel="noopener">docs.agentmail.to</a> · GitHub: <a href="https://github.com/agentmail-to/agentmail-python" target="_blank" rel="noopener">agentmail-to/agentmail-python</a></p>
+      </div>
+    </details>
+
+    <!-- ============ GROUP: TOOLS THE AGENT USES ============ -->
+    <div class="group-head">
+      <span class="dot"></span>
+      <h3>2 · Tools the Agent Uses (Like a Human Would)</h3>
+      <span class="line"></span>
+    </div>
+
+    <!-- GRANOLA -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Granola — Meeting Notes</div>
+        </div>
+        <span class="deep-tag">CAPTURE</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">AI notetaker that listens to Zoom/Meet/Teams and produces structured notes. No public REST API today — integrate via the desktop app's local file output, Zapier, or by reading the rendered note from Notion/Slack export.</div>
+
+      <h4>Use case in the business</h4>
+      <p>The agent reads the Granola note after every customer call, extracts action items, and pushes them to Trello/Asana — closing the loop between "we talked about X" and "X is in motion" without anyone touching a keyboard.</p>
+
+      <h4>Practical pattern (Zapier bridge)</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="c"># Granola → Zapier webhook → your endpoint → agent</span>
+<span class="k">from</span> fastapi <span class="k">import</span> FastAPI, Request
+app = FastAPI()
+
+<span class="n">@app</span>.post(<span class="s">"/granola/note"</span>)
+<span class="k">async</span> <span class="k">def</span> note(req: Request):
+    note = <span class="k">await</span> req.json()  <span class="c"># {title, transcript, summary, action_items}</span>
+    <span class="k">for</span> item <span class="k">in</span> note[<span class="s">"action_items"</span>]:
+        agent.tools.trello.create_card(
+            list_id=<span class="s">"todo"</span>,
+            title=item[<span class="s">"text"</span>],
+            description=<span class="s">f"From call: {note['title']}"</span>,
+        )</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">If/when Granola ships an API, swap the webhook for a poll. The agent contract stays identical.</p>
+      </div>
+    </details>
+
+    <!-- TRELLO / ASANA -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Trello / Asana — Where Work Actually Lives</div>
+        </div>
+        <span class="deep-tag">TASKS</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Task boards. Pick whichever the customer already uses — don't migrate them. Both have first-class Python SDKs and are wrapped by Composio.</div>
+
+      <h4>Use case in the business</h4>
+      <p>The agent is a board member. It creates cards from inbound email, moves cards through stages as work happens, comments with status, and assigns to humans when stuck. You should be able to look at the board and tell what the agent did this week.</p>
+
+      <h4>Trello — direct SDK</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> trello <span class="k">import</span> TrelloClient
+tc = TrelloClient(api_key=KEY, token=TOKEN)
+board = tc.get_board(<span class="s">"acme-ops"</span>)
+todo = next(l <span class="k">for</span> l <span class="k">in</span> board.list_lists() <span class="k">if</span> l.name == <span class="s">"To Do"</span>)
+todo.add_card(name=<span class="s">"Follow up with prospect X"</span>, desc=<span class="s">"From email thread #4421"</span>)</pre>
+
+      <h4>Asana — official client</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">import</span> asana
+api = asana.ApiClient(asana.Configuration(access_token=PAT))
+asana.TasksApi(api).create_task({<span class="s">"data"</span>: {
+    <span class="s">"name"</span>: <span class="s">"Send proposal to Beta Inc"</span>,
+    <span class="s">"projects"</span>: [<span class="s">"1234567890"</span>],
+    <span class="s">"notes"</span>: <span class="s">"Triggered by Granola call note 2026-05-13"</span>,
+}}, opts={})</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Reference: <a href="https://github.com/Asana/python-asana" target="_blank" rel="noopener">Asana/python-asana</a></p>
+      </div>
+    </details>
+
+    <!-- LOOM -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Loom — Async Video Updates</div>
+        </div>
+        <span class="deep-tag">VIDEO</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Loom has no open REST API — it offers a Record SDK (browser/JS) and an oEmbed endpoint. The agent doesn't <em>create</em> Looms; <strong>you</strong> record one Loom per week per customer, and the agent embeds + distributes them.</div>
+
+      <h4>Use case in the business</h4>
+      <p>Each shipped workflow → 1 Loom = customer report + marketing asset. The agent tracks the Loom URL, embeds it in the weekly customer email, posts the public ones to your content channel.</p>
+
+      <h4>Embed via oEmbed</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">import</span> requests
+
+<span class="k">def</span> loom_embed_html(loom_url: str) -&gt; str:
+    r = requests.get(<span class="s">"https://www.loom.com/v1/oembed"</span>,
+                     params={<span class="s">"url"</span>: loom_url})
+    <span class="k">return</span> r.json()[<span class="s">"html"</span>]  <span class="c"># &lt;iframe ...&gt;</span>
+
+<span class="c"># used inside the agent's weekly-report skill</span>
+report = <span class="s">f"""
+&lt;h2&gt;Week of {date}&lt;/h2&gt;
+{loom_embed_html(loom_url)}
+&lt;ul&gt;{action_items_html}&lt;/ul&gt;
+"""</span>
+agent.tools.email.send(to=customer.email, subject=<span class="s">"Weekly update"</span>, html=report)</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://dev.loom.com/" target="_blank" rel="noopener">dev.loom.com</a></p>
+      </div>
+    </details>
+
+    <!-- SUPERHUMAN -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Superhuman — Email Surface (via MCP)</div>
+        </div>
+        <span class="deep-tag">EMAIL UX</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Superhuman doesn't expose a traditional REST API. Its <strong>MCP server</strong> exposes tools like <code>send_draft</code>, <code>list_threads</code>, and reply scheduling — usable directly from Claude Code or any MCP-aware agent. Business plan or higher.</div>
+
+      <h4>Use case in the business</h4>
+      <p>For agents handling <em>your</em> personal inbox (founder ops, replies to inbound, calendar coordination) Superhuman + MCP is faster and feels native. For per-customer agent inboxes, use AgentMail instead.</p>
+
+      <h4>Wire it into Claude Code</h4>
+      <span class="lang-tag">bash</span>
+<pre>claude mcp add superhuman -- npx -y @superhuman/mcp-server@latest
+<span class="c"># then in a Claude Code session:</span>
+<span class="c"># &gt; "draft replies to all unread emails from prospects, schedule for 9:03am tomorrow"</span></pre>
+
+      <h4>From Python (any MCP client)</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> mcp <span class="k">import</span> ClientSession, StdioServerParameters
+
+params = StdioServerParameters(command=<span class="s">"npx"</span>,
+                               args=[<span class="s">"-y"</span>, <span class="s">"@superhuman/mcp-server@latest"</span>])
+<span class="k">async with</span> ClientSession(params) <span class="k">as</span> sh:
+    <span class="k">await</span> sh.call_tool(<span class="s">"send_draft"</span>, {
+        <span class="s">"to"</span>: [<span class="s">"customer@acme.com"</span>],
+        <span class="s">"subject"</span>: <span class="s">"This week's update"</span>,
+        <span class="s">"html"</span>: report_html,
+        <span class="s">"smart_send"</span>: <span class="k">True</span>,
+    })</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://help.superhuman.com/hc/en-us/articles/49810745762067-Superhuman-Mail-MCP-Server" target="_blank" rel="noopener">Superhuman Mail MCP Server</a></p>
+      </div>
+    </details>
+
+    <!-- OBSIDIAN -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Obsidian — Long-Term Agent Memory</div>
+        </div>
+        <span class="deep-tag">MEMORY</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Markdown vault. Each customer gets one. The agent reads/writes notes via the <strong>Local REST API plugin</strong> (or a thin MCP wrapper). Notes survive across sessions, are human-readable, and are <em>diffable in git</em>.</div>
+
+      <h4>Use case in the business</h4>
+      <p>The agent's "permanent memory" is a vault: <code>customers/acme/people/jane.md</code>, <code>customers/acme/playbooks/sdr.md</code>, <code>customers/acme/decisions/2026-05-13.md</code>. When a new agent boots in a new VM, it pulls the vault and is instantly up to speed.</p>
+
+      <h4>Setup</h4>
+      <span class="lang-tag">bash</span>
+<pre><span class="c"># in Obsidian → Settings → Community plugins → install "Local REST API"</span>
+<span class="c"># enable it, copy the API key, note the port (default 27124 https)</span></pre>
+
+      <h4>Minimal working example</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">import</span> requests
+BASE = <span class="s">"https://127.0.0.1:27124"</span>
+HDR  = {<span class="s">"Authorization"</span>: <span class="s">f"Bearer {OBSIDIAN_API_KEY}"</span>}
+
+<span class="c"># write a note (the agent's daily journal entry)</span>
+requests.put(<span class="s">f"{BASE}/vault/customers/acme/journal/2026-05-13.md"</span>,
+             headers={**HDR, <span class="s">"Content-Type"</span>: <span class="s">"text/markdown"</span>},
+             data=<span class="s">"## What I did today\n- Triaged 14 emails\n- Booked 2 demos\n"</span>,
+             verify=<span class="k">False</span>)
+
+<span class="c"># search before acting (avoid duplicate work)</span>
+hits = requests.post(<span class="s">f"{BASE}/search/simple"</span>, headers=HDR,
+                     params={<span class="s">"query"</span>: <span class="s">"Jane Smith"</span>}, verify=<span class="k">False</span>).json()</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Plugin: <a href="https://github.com/coddingtonbear/obsidian-local-rest-api" target="_blank" rel="noopener">coddingtonbear/obsidian-local-rest-api</a></p>
+      </div>
+    </details>
+
+    <!-- ============ GROUP: BUILDER TOOLS ============ -->
+    <div class="group-head">
+      <span class="dot"></span>
+      <h3>3 · Builder Tools (Yours, Not the Agent's)</h3>
+      <span class="line"></span>
+    </div>
+
+    <!-- CODEX -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Codex — Build &amp; Wire Integrations</div>
+        </div>
+        <span class="deep-tag">CODE GEN</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">OpenAI's terminal coding agent (Rust, GPT-5.5). Good at small-to-medium scoped tasks: writing a new Composio toolkit shim, generating a webhook handler, drafting a Hermes skill. Cloud Codex runs the same tasks in parallel sandboxes for PR review.</div>
+
+      <h4>Use case in the business</h4>
+      <p>You'll write 1–3 new skills per customer per week. Codex is for those reps. Hand it the workflow doc and the existing skill folder; let it draft → you review → ship.</p>
+
+      <h4>Install &amp; use</h4>
+      <span class="lang-tag">bash</span>
+<pre>npm i -g @openai/codex
+<span class="c"># or: brew install --cask codex</span>
+
+cd ~/code/agents/acme
+codex <span class="s">"add a skill that polls Granola webhook output in ./inbox and \
+            creates Trello cards for action items"</span></pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Docs: <a href="https://developers.openai.com/codex/cli" target="_blank" rel="noopener">developers.openai.com/codex/cli</a></p>
+      </div>
+    </details>
+
+    <!-- CLAUDE CODE -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">Claude Code — Long-Horizon &amp; Meta-Agent Logic</div>
+        </div>
+        <span class="deep-tag">META-AGENT</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Anthropic's CLI/SDK. Use <strong>Opus 4.7</strong> for the meta-agent — the layer that takes a Telegram message and decides "spin up VM / patch a stuck worker / page the human." Long-horizon planning + tool use is its strength.</div>
+
+      <h4>Use case in the business</h4>
+      <p>The meta-agent is the only piece of code that sees <em>all</em> customers. It has access to Orgo, AgentMail, Telegram, and your skills repo. Codex/GPT-5.5 isn't the wrong model — Opus 4.7 is just less likely to fumble multi-step recovery flows.</p>
+
+      <h4>Headless invocation (Python SDK)</h4>
+      <span class="lang-tag">python</span>
+<pre><span class="k">from</span> anthropic <span class="k">import</span> Anthropic
+client = Anthropic()
+
+resp = client.messages.create(
+    model=<span class="s">"claude-opus-4-7"</span>,
+    max_tokens=4096,
+    tools=[orgo_tool, agentmail_tool, telegram_tool],
+    messages=[{<span class="s">"role"</span>: <span class="s">"user"</span>, <span class="s">"content"</span>: telegram_msg.text}],
+)
+<span class="c"># then dispatch tool calls — this is the meta-agent's main loop</span></pre>
+
+      <h4>Or as a subprocess (Claude Code CLI)</h4>
+      <span class="lang-tag">bash</span>
+<pre>claude -p <span class="s">"VM for customer acme is unresponsive — restart it and email me when ready"</span> \
+       --allowedTools Bash,Read,Write \
+       --output-format json</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">The meta-agent should run on <em>your</em> infra (a small server or Cloudflare Worker), not inside an Orgo VM — it's the supervisor.</p>
+      </div>
+    </details>
+
+    <!-- MCPs -->
+    <details class="deep">
+      <summary>
+        <div class="summary-left">
+          <svg class="chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 4 11 8 6 12"/></svg>
+          <div class="deep-title">MCPs — Live Context for Every Agent</div>
+        </div>
+        <span class="deep-tag">CONTEXT</span>
+      </summary>
+      <div class="deep-body">
+      <div class="deep-sub">Model Context Protocol servers plug into any MCP-aware agent (Claude Code, Cursor, Codex). The video calls out three: <strong>Perplexity</strong> (live web answers), <strong>Context7</strong> (up-to-date library docs), <strong>X</strong> (search/post on X).</div>
+
+      <h4>Use case in the business</h4>
+      <p>Without these, your agent hallucinates the API surface of every library you ask it to use. Context7 alone removes most "you used a deprecated method" bugs. Perplexity is the agent's web brain. X is for content distribution + competitive intel.</p>
+
+      <h4>Add them to Claude Code</h4>
+      <span class="lang-tag">bash</span>
+<pre><span class="c"># Context7 — up-to-date docs for ~1000 libraries</span>
+claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+
+<span class="c"># Perplexity — live web search</span>
+claude mcp add perplexity -- npx -y @perplexity/mcp@latest \
+  --env PERPLEXITY_API_KEY=$PPLX_KEY
+
+<span class="c"># X (Twitter) — search, post, DMs</span>
+claude mcp add x -- npx -y @x/mcp-server@latest \
+  --env X_BEARER_TOKEN=$X_KEY</pre>
+
+      <h4>Use it from a prompt</h4>
+      <span class="lang-tag">text</span>
+<pre>&gt; use context7 to look up the latest agentmail-python sockets API,
+  then write me a Hermes skill that listens for replies on inbox sdr-acme
+  and routes anything containing "unsubscribe" to a Trello "Compliance" list.</pre>
+      <p style="font-size:13px; color:var(--muted); margin-top:8px">Context7: <a href="https://github.com/upstash/context7" target="_blank" rel="noopener">upstash/context7</a> · MCP spec: <a href="https://modelcontextprotocol.io/" target="_blank" rel="noopener">modelcontextprotocol.io</a></p>
+      </div>
+    </details>
+
+    <div class="callout" style="margin-top:24px">
+      <div class="callout-title">How they actually wire together</div>
+      <p style="margin:0; font-size:14px">
+        <strong>You</strong> (Telegram) → <strong>Meta-agent</strong> (Claude Code + Opus 4.7, with Context7/Perplexity MCPs) → <strong>Orgo</strong> (spawn VM) → <strong>Hermes</strong> boots inside, loads its skills folder → Hermes uses <strong>Composio</strong> for app actions, <strong>AgentMail</strong> for its inbox, <strong>Obsidian</strong> for memory, and treats <strong>Trello/Asana/Granola/Loom/Superhuman</strong> as the human-visible surface. Failures bubble back via AgentMail → meta-agent → Telegram → you.
+      </p>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section>
+    <h2>The Reference Architecture</h2>
+    <div class="callout">
+      <div class="callout-title">Mental model</div>
+      <p style="margin:0">
+        Telegram ⇢ <strong>Meta-Agent (Opus 4.7)</strong> ⇢ spawns
+        <strong>Customer Workspace (Orgo)</strong> ⇢ which contains many
+        <strong>Worker Agents (Hermes / GPT-5.5)</strong> ⇢ each with its own VM, email, tools,
+        and an Obsidian memory vault.
+      </p>
+    </div>
+    <p>
+      Failures bubble up: a worker agent that gets stuck emails the meta-agent; the meta-agent
+      either patches the VM in place or pings you on Telegram. Email + Telegram = the entire
+      observability layer. No dashboards, no PagerDuty.
+    </p>
+  </section>
+
+  <!-- GUIDE -->
+  <section>
+    <h2>Your Implementation Guide (do this in order)</h2>
+    <div class="steps">
+      <div class="step">
+        <h3>Pick one boring vertical you actually know</h3>
+        <p>Marketing agencies, law, insurance, wholesale, real estate. Skip healthcare/finance for v1.</p>
+      </div>
+      <div class="step">
+        <h3>Write the offer in one sentence</h3>
+        <p>"Unlimited AI employees for {industry} — $X/mo, all infra and changes included." Test it on 5 friendly buyers before you build anything.</p>
+      </div>
+      <div class="step">
+        <h3>Spin up Orgo and install Hermes on one VM</h3>
+        <p>This is your "hello world" agent. Goal: it can read its inbox and reply.</p>
+      </div>
+      <div class="step">
+        <h3>Build the meta-agent in Claude Code (Opus 4.7)</h3>
+        <p>Single job: take a Telegram message → spawn / install / restart worker agents on Orgo VMs.</p>
+      </div>
+      <div class="step">
+        <h3>Wire the customer-facing tools through Composio</h3>
+        <p>Email (Agent Mail), Trello/Asana, Granola, Loom, Obsidian. Pick only the tools your first vertical actually lives in.</p>
+      </div>
+      <div class="step">
+        <h3>Choose models per job</h3>
+        <p>GPT 5.5 for tool-using workers · GLM 5.1 / Kimmy for cheap parallel grunt work · Opus 4.7 for the meta-agent.</p>
+      </div>
+      <div class="step">
+        <h3>Onboard customer #1 with one workflow</h3>
+        <p>One workspace, one agent, one job. Resist the urge to ship the whole "AI employee" on day one.</p>
+      </div>
+      <div class="step">
+        <h3>Run ops from Telegram, post a Loom every week</h3>
+        <p>The Loom is both the customer report and your marketing. Each new workflow you ship becomes a piece of inbound content.</p>
+      </div>
+      <div class="step">
+        <h3>Scale by cloning workspaces, not by hiring</h3>
+        <p>Each new customer = a duplicated Orgo workspace + a new row in your meta-agent's registry. One person, 20+ customers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WATCH-OUTS -->
+  <section>
+    <h2>Watch-outs From the Live Demo</h2>
+    <div class="callout warn">
+      <div class="callout-title">Reliability is the real product</div>
+      <p style="margin:0">Models will fail. VMs will hang. The reason customers pay $5K/mo is that <em>you</em> (via the meta-agent) make the failure invisible. Build the watchdog before you build the third workflow.</p>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Don't oversell autonomy</div>
+      <p style="margin:0">Most customers only need 1–3 agents doing 1–3 workflows really well. "Unlimited" is a pricing posture, not a product roadmap.</p>
+    </div>
+    <div class="callout warn">
+      <div class="callout-title">Pick verticals where mistakes are cheap</div>
+      <p style="margin:0">Healthcare and finance punish errors with regulators. Marketing and wholesale punish errors with a polite email.</p>
+    </div>
+  </section>
+
+  <footer>
+    Source video: <a href="https://www.youtube.com/watch?v=BI-MNjm1tTQ" target="_blank" rel="noopener">The $1M+ Solo AI Agent Business (Full Course) — Greg Isenberg</a><br/>
+    Featuring Nick of <a href="https://www.orgo.ai" target="_blank" rel="noopener">Orgo</a> / Hermes Agent. Timestamps and figures are paraphrased from the video and surrounding press. Generated 2026-05-13.
+  </footer>
+
+</div>
+</body>
+</html>

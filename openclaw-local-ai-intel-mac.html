@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenClaw + Local AI on Intel Mac — Free Setup Guide</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-card: #131316;
+    --bg-elev: #1a1a1f;
+    --bg-elev-2: #20202a;
+    --border: #26262d;
+    --border-soft: #1f1f26;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --muted-2: #5e5e6b;
+    --accent: #c8ff2f;
+    --accent-soft: rgba(200, 255, 47, 0.12);
+    --accent-line: rgba(200, 255, 47, 0.30);
+    --warn: #ffb547;
+    --danger: #ff5b6b;
+    --ok: #4ad991;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(200,255,47,0.10), transparent 60%),
+      linear-gradient(180deg, #161618 0%, #0f0f12 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 720px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 500; }
+  .meta .dot { width: 4px; height: 4px; background: var(--muted-2); border-radius: 50%; display: inline-block; }
+
+  /* Section */
+  section { margin-bottom: 40px; }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  h3 {
+    font-size: 17px;
+    letter-spacing: -0.005em;
+    margin-bottom: 8px;
+  }
+  p { color: #d3d3dc; }
+  p + p { margin-top: 12px; }
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px;
+  }
+  .card + .card { margin-top: 16px; }
+
+  /* Diagram row */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 18px;
+  }
+  .flow .node {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .flow .node .name { font-weight: 600; font-size: 15px; }
+  .flow .node .role { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .flow .arrow {
+    align-self: center;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  @media (max-width: 720px) {
+    .flow {
+      grid-template-columns: 1fr;
+    }
+    .flow .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+
+  /* Reality check */
+  .callout {
+    background: linear-gradient(180deg, rgba(255,181,71,0.06), rgba(255,181,71,0.02));
+    border: 1px solid rgba(255,181,71,0.25);
+    border-radius: 14px;
+    padding: 18px 20px;
+    color: #f0ddc1;
+    font-size: 14.5px;
+  }
+  .callout strong { color: var(--warn); }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  td .pill {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step {
+    position: relative;
+    padding-left: 56px;
+    margin-bottom: 28px;
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent-line);
+    color: var(--accent);
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .step h3 { margin-bottom: 6px; }
+  .step .desc { color: var(--muted); font-size: 14.5px; margin-bottom: 12px; }
+
+  /* Code block */
+  .code {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d6f4ff;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code .label {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    background: var(--bg-elev-2);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .code .c { color: #6f6f7d; }
+  .code .k { color: var(--accent); }
+  .code .s { color: #ffd28a; }
+
+  /* Use case grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .uc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .uc .glyph {
+    display: inline-grid;
+    place-items: center;
+    width: 32px; height: 32px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .uc h3 { margin-bottom: 6px; }
+  .uc p { font-size: 14px; color: #c2c2cc; }
+  .uc .prompt {
+    margin-top: 12px;
+    background: var(--bg-elev);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    color: #d6f4ff;
+  }
+  .uc .prompt::before {
+    content: "›  ";
+    color: var(--accent);
+  }
+
+  /* Troubleshooting */
+  .ts { display: grid; gap: 10px; }
+  .ts .row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .ts .row .sym { color: var(--warn); font-weight: 600; font-size: 14px; }
+  .ts .row .fix { color: #d3d3dc; font-size: 14.5px; }
+  @media (max-width: 720px) {
+    .ts .row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--muted);
+    font-size: 13.5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  footer .links a { margin-right: 14px; }
+  footer .cost {
+    color: var(--ok);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="eyebrow">Setup guide</span>
+    <h1>Run OpenClaw with a free local AI on an Intel MacBook</h1>
+    <p class="subtitle">A self-hosted personal AI agent with zero API bills. Uses Ollama as the local LLM backend so the whole stack runs on your laptop, no cloud, no credit card.</p>
+    <div class="meta">
+      <span>📅 <strong>May 2026</strong></span>
+      <span class="dot"></span>
+      <span>⏱ <strong>~10 min</strong> read</span>
+      <span class="dot"></span>
+      <span>💻 <strong>Intel MacBook</strong></span>
+      <span class="dot"></span>
+      <span>💸 Total cost: <strong style="color: var(--ok)">$0</strong></span>
+    </div>
+  </div>
+
+  <!-- What you're building -->
+  <section>
+    <div class="section-eyebrow">What you're building</div>
+    <h2>The stack</h2>
+    <p>OpenClaw is the agent — a Node.js app that takes a prompt, decides which tools to call (filesystem, shell, browser, messaging apps), and loops until the task is done. By default it talks to a paid LLM API. We're swapping that out for <strong>Ollama</strong> running a small open-weight model on your Mac, which speaks the OpenAI API format so OpenClaw can use it without code changes.</p>
+
+    <div class="flow">
+      <div class="node">
+        <div class="name">OpenClaw</div>
+        <div class="role">Agent loop · Node.js</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="name">Ollama</div>
+        <div class="role">localhost:11434</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="name">Qwen 2.5 7B</div>
+        <div class="role">Local model · ~5 GB</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reality check -->
+  <section>
+    <div class="section-eyebrow">Before you start</div>
+    <h2>Intel Mac reality check</h2>
+    <div class="callout">
+      <strong>Heads up:</strong> Intel Macs don't have Apple Silicon's unified-memory speed advantage. Expect <strong>3–8 tokens/sec</strong> on a 7B model running on CPU. That's fine for chat and short tasks, slow for long agent loops. RAM is the constraint that decides which model you can run.
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Your RAM</th><th>Recommended model</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>8 GB</td>
+          <td>Llama 3.2 3B Instruct</td>
+          <td>Only thing that fits. Weak at multi-step agent work.</td>
+        </tr>
+        <tr>
+          <td>16 GB</td>
+          <td>Qwen 2.5 7B Instruct <span class="pill">recommended</span></td>
+          <td>Best small-model tool calling. Sweet spot for this setup.</td>
+        </tr>
+        <tr>
+          <td>32 GB+</td>
+          <td>Qwen 2.5 14B Instruct</td>
+          <td>Noticeably smarter, noticeably slower on CPU.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Setup -->
+  <section>
+    <div class="section-eyebrow">Setup</div>
+    <h2>Step-by-step</h2>
+
+    <div class="steps">
+
+      <div class="step">
+        <h3>Install Node 24</h3>
+        <p class="desc">OpenClaw requires Node 24 (or 22.16+). Use Homebrew if you don't have it.</p>
+        <div class="code"><span class="label">shell</span><span class="c"># install Homebrew if needed</span>
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+<span class="c"># install Node</span>
+brew install node@24
+node --version  <span class="c"># should print v24.x.x</span></div>
+      </div>
+
+      <div class="step">
+        <h3>Install &amp; start Ollama</h3>
+        <p class="desc">Ollama runs the local model and exposes an OpenAI-compatible API at <code>http://localhost:11434/v1</code>.</p>
+        <div class="code"><span class="label">shell</span>brew install ollama
+
+<span class="c"># start Ollama as a background service</span>
+brew services start ollama
+
+<span class="c"># confirm it's listening</span>
+curl http://localhost:11434/api/tags</div>
+      </div>
+
+      <div class="step">
+        <h3>Pull a model</h3>
+        <p class="desc">Qwen 2.5 7B Instruct is the recommended pick — strong tool calling for its size. ~5 GB download.</p>
+        <div class="code"><span class="label">shell</span>ollama pull qwen2.5:7b-instruct
+
+<span class="c"># 8 GB RAM? use this instead:</span>
+<span class="c"># ollama pull llama3.2:3b-instruct</span>
+
+<span class="c"># quick smoke test</span>
+ollama run qwen2.5:7b-instruct "say hi in 5 words"</div>
+      </div>
+
+      <div class="step">
+        <h3>Install OpenClaw</h3>
+        <p class="desc">Global install via npm, then run the onboarding wizard once to set up the daemon.</p>
+        <div class="code"><span class="label">shell</span>npm install -g openclaw@latest
+
+<span class="c"># one-time setup — installs the background daemon</span>
+openclaw onboard --install-daemon</div>
+      </div>
+
+      <div class="step">
+        <h3>Point OpenClaw at Ollama</h3>
+        <p class="desc">Edit <code>~/.openclaw/openclaw.json</code> (JSON5 — comments allowed). Add an Ollama provider and set the agent model. Exact key names may vary slightly between versions; if the agent doesn't pick up the endpoint, check <a href="https://docs.openclaw.ai/gateway/configuration">docs.openclaw.ai/gateway/configuration</a>.</p>
+        <div class="code"><span class="label">json5</span>{
+  <span class="k">providers</span>: {
+    <span class="k">ollama</span>: {
+      <span class="k">type</span>: <span class="s">"openai-compatible"</span>,
+      <span class="k">baseURL</span>: <span class="s">"http://localhost:11434/v1"</span>,
+      <span class="k">apiKey</span>: <span class="s">"ollama"</span>  <span class="c">// dummy — Ollama doesn't check it</span>
+    }
+  },
+  <span class="k">agent</span>: {
+    <span class="k">model</span>: <span class="s">"ollama/qwen2.5:7b-instruct"</span>
+  }
+}</div>
+      </div>
+
+      <div class="step">
+        <h3>Smoke test it</h3>
+        <p class="desc">Ask the agent to do something tiny that touches a tool (the filesystem). If it lists your files, the wiring is working.</p>
+        <div class="code"><span class="label">shell</span>cd ~/Documents
+openclaw "list the 5 most recently modified files in this folder"</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Use cases -->
+  <section>
+    <div class="section-eyebrow">What it's actually good for</div>
+    <h2>5 simple use cases</h2>
+    <p>Local 7B models are not GPT-5. Pick tasks that are <strong>narrow, structured, and short-loop</strong> — where the agent runs a few tools, transforms text, and stops. Skip anything needing deep reasoning over huge contexts.</p>
+
+    <div class="grid">
+
+      <div class="uc">
+        <div class="glyph">✉</div>
+        <h3>Inbox triage</h3>
+        <p>Skim recent unread email, group by sender, surface anything that looks like a meeting request or a deadline.</p>
+        <div class="prompt">Summarize unread emails from the last 24h. Group by sender. Flag meeting requests and anything mentioning a date.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">⚡</div>
+        <h3>Daily standup writer</h3>
+        <p>Reads recent <code>git log</code> and your calendar, drafts a 3-bullet standup post you can paste into Slack.</p>
+        <div class="prompt">Read git commits in ~/code/main from the last 24h and my calendar for today. Draft a 3-bullet standup: Yesterday / Today / Blockers.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">🗂</div>
+        <h3>File janitor</h3>
+        <p>Walks a folder, finds duplicates or junk, lists what's safe to delete. (Lets you confirm before it nukes anything.)</p>
+        <div class="prompt">Find duplicate files in ~/Downloads larger than 50 MB. Group them by hash. Don't delete — just print the list.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">📝</div>
+        <h3>Notes → tasks</h3>
+        <p>Paste raw meeting notes, get back a clean Markdown checklist of action items grouped by owner.</p>
+        <div class="prompt">Here are my meeting notes. Extract every action item into a Markdown checklist. Group by owner. Flag anything without an owner.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">🔎</div>
+        <h3>Research summarizer</h3>
+        <p>Give it a few URLs, get back a 5-bullet comparison. Better than juggling tabs for shallow research.</p>
+        <div class="prompt">Fetch these 3 URLs and give me a 5-bullet comparison of their pricing tiers. Cite which point came from which URL.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">⏰</div>
+        <h3>Recurring digests</h3>
+        <p>Schedule it: every morning, summarize new GitHub issues on a repo and post a digest to a Telegram channel.</p>
+        <div class="prompt">Every weekday at 9am, list new issues on owner/repo from the last 24h. Group by label. Post the summary to my Telegram "digests" channel.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section>
+    <div class="section-eyebrow">When things break</div>
+    <h2>Troubleshooting</h2>
+    <div class="ts">
+      <div class="row">
+        <div class="sym">Slow / hangs mid-loop</div>
+        <div class="fix">Drop to <code>llama3.2:3b-instruct</code>, or switch the provider to a free hosted endpoint — Groq, Google AI Studio's Gemini free tier, or OpenRouter's free models. Same config, different <code>baseURL</code> and <code>apiKey</code>.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Tool calls don't fire</div>
+        <div class="fix">Make sure the model name ends in <code>-instruct</code> or <code>-chat</code>. Base models can't do tool calling. Qwen 2.5 Instruct and Llama 3.x Instruct both work; Mistral 7B base does not.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Out of memory / fans spin up</div>
+        <div class="fix">Use the Q4_K_M quantization (default in Ollama). Close Chrome. Reduce the agent's context window in <code>openclaw.json</code>. If you have a discrete AMD GPU on a 16″ MBP, llama.cpp with the Metal backend is faster than CPU-only Ollama.</div>
+      </div>
+      <div class="row">
+        <div class="sym">"Cannot find module 'openclaw'"</div>
+        <div class="fix">Your global npm prefix isn't on <code>$PATH</code>. Run <code>npm config get prefix</code> and add <code>$(npm config get prefix)/bin</code> to your shell rc file.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Model gives up / refuses tools</div>
+        <div class="fix">Smaller models follow shorter, more concrete prompts better. Replace "help me with X" with "do step 1, then step 2, then stop." Less open-ended = better results.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="links">
+      <a href="https://github.com/openclaw/openclaw">OpenClaw on GitHub</a>
+      <a href="https://docs.openclaw.ai/">Docs</a>
+      <a href="https://ollama.com/">Ollama</a>
+    </div>
+    <div>Total LLM cost in this setup: <span class="cost">$0 / month</span></div>
+  </footer>
+
+</div>
+</body>
+</html>
