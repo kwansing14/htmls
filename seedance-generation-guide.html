@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seedance 2.0 — A Field Guide to Free AI Video</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@400;500;700&family=Inter+Tight:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0d0c0a;
+        --bg-2: #161410;
+        --paper: #f4ede1;
+        --ink: #e9e2d2;
+        --ink-dim: #a39a86;
+        --accent: #ff5a1f;
+        --accent-2: #ffd166;
+        --line: rgba(244, 237, 225, 0.12);
+        --grain: rgba(255, 255, 255, 0.025);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Inter Tight", sans-serif;
+        font-weight: 400;
+        line-height: 1.6;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      /* Film grain overlay */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 100;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+        opacity: 0.08;
+        mix-blend-mode: overlay;
+      }
+
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      .serif {
+        font-family: "Fraunces", serif;
+      }
+
+      /* ==== HERO ==== */
+      .hero {
+        min-height: 100vh;
+        padding: 2rem clamp(1.5rem, 5vw, 5rem) 4rem;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .hero-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 1rem;
+      }
+
+      .hero-bar .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin-right: 0.5rem;
+        box-shadow: 0 0 12px var(--accent);
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: scale(1.3);
+        }
+      }
+
+      .hero-main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3rem;
+        align-content: center;
+        padding: 4rem 0;
+        position: relative;
+      }
+
+      @media (min-width: 900px) {
+        .hero-main {
+          grid-template-columns: 2fr 1fr;
+          gap: 6rem;
+        }
+      }
+
+      .eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--accent);
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 2.5rem;
+        height: 1px;
+        background: var(--accent);
+      }
+
+      h1.title {
+        font-family: "Fraunces", serif;
+        font-weight: 300;
+        font-size: clamp(3rem, 9vw, 8rem);
+        line-height: 0.92;
+        letter-spacing: -0.04em;
+        color: var(--paper);
+        font-variation-settings: "opsz" 144;
+      }
+
+      h1.title em {
+        font-style: italic;
+        font-weight: 400;
+        color: var(--accent-2);
+      }
+
+      h1.title .strike {
+        position: relative;
+        display: inline-block;
+      }
+
+      h1.title .strike::after {
+        content: "";
+        position: absolute;
+        left: -2%;
+        right: -2%;
+        top: 52%;
+        height: 4px;
+        background: var(--accent);
+        transform: rotate(-2deg);
+      }
+
+      .hero-meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+        color: var(--ink-dim);
+        line-height: 1.8;
+        border-left: 1px solid var(--line);
+        padding-left: 1.5rem;
+        align-self: end;
+      }
+
+      .hero-meta strong {
+        color: var(--paper);
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .hero-meta-row {
+        margin-bottom: 1.25rem;
+      }
+
+      .hero-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        flex-wrap: wrap;
+        gap: 2rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        border-top: 1px solid var(--line);
+        padding-top: 1.5rem;
+      }
+
+      .frame-marks {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+      }
+      .frame-marks span {
+        display: block;
+        width: 10px;
+        height: 10px;
+        border: 1px solid var(--ink-dim);
+      }
+      .frame-marks span.fill {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      /* ==== SECTIONS ==== */
+      section {
+        padding: 6rem clamp(1.5rem, 5vw, 5rem);
+        border-bottom: 1px solid var(--line);
+        position: relative;
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 3.5rem;
+        align-items: end;
+      }
+
+      @media (min-width: 800px) {
+        .section-head {
+          grid-template-columns: auto 1fr auto;
+          gap: 3rem;
+        }
+      }
+
+      .section-num {
+        font-family: "Fraunces", serif;
+        font-size: clamp(3rem, 8vw, 6rem);
+        font-weight: 300;
+        font-style: italic;
+        line-height: 0.8;
+        color: var(--accent);
+        font-variation-settings: "opsz" 144;
+      }
+
+      .section-head h2 {
+        font-family: "Fraunces", serif;
+        font-weight: 400;
+        font-size: clamp(1.75rem, 4vw, 3rem);
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: var(--paper);
+      }
+
+      .section-head .tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .lead {
+        font-family: "Fraunces", serif;
+        font-weight: 300;
+        font-size: clamp(1.1rem, 1.8vw, 1.35rem);
+        line-height: 1.55;
+        color: var(--ink);
+        max-width: 60ch;
+        margin-bottom: 2.5rem;
+      }
+
+      /* ==== PLATFORM CARDS ==== */
+      .platforms {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 700px) {
+        .platforms {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (min-width: 1100px) {
+        .platforms {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .platform-card {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        padding: 2rem;
+        position: relative;
+        transition:
+          transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+          border-color 0.4s;
+        overflow: hidden;
+      }
+
+      .platform-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--accent);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s ease;
+      }
+
+      .platform-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(244, 237, 225, 0.25);
+      }
+
+      .platform-card:hover::before {
+        transform: scaleX(1);
+      }
+
+      .platform-card .free-stamp {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 0.25rem 0.5rem;
+        text-transform: uppercase;
+      }
+
+      .platform-card h3 {
+        font-family: "Fraunces", serif;
+        font-size: 1.75rem;
+        font-weight: 400;
+        margin-bottom: 0.25rem;
+        color: var(--paper);
+        letter-spacing: -0.01em;
+      }
+
+      .platform-card .platform-id {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+      }
+
+      .platform-card p {
+        font-size: 0.95rem;
+        color: var(--ink-dim);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+
+      .specs {
+        list-style: none;
+        border-top: 1px solid var(--line);
+        padding-top: 1rem;
+      }
+
+      .specs li {
+        display: flex;
+        justify-content: space-between;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        padding: 0.4rem 0;
+        color: var(--ink-dim);
+      }
+
+      .specs li strong {
+        color: var(--paper);
+        font-weight: 500;
+      }
+
+      /* ==== STEPS ==== */
+      .steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 2rem;
+        padding: 2rem 0;
+        border-bottom: 1px solid var(--line);
+        align-items: start;
+      }
+
+      .step:last-child {
+        border-bottom: none;
+      }
+
+      .step-num {
+        font-family: "Fraunces", serif;
+        font-size: 2.5rem;
+        font-weight: 300;
+        color: var(--accent-2);
+        line-height: 1;
+        min-width: 3rem;
+        font-variation-settings: "opsz" 144;
+      }
+
+      .step h4 {
+        font-family: "Fraunces", serif;
+        font-size: 1.4rem;
+        font-weight: 500;
+        color: var(--paper);
+        margin-bottom: 0.5rem;
+        letter-spacing: -0.01em;
+      }
+
+      .step p {
+        color: var(--ink-dim);
+      }
+      .step .mono-tag {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        background: rgba(255, 90, 31, 0.1);
+        color: var(--accent);
+        padding: 0.15rem 0.5rem;
+        border-radius: 2px;
+        letter-spacing: 0.05em;
+        margin-top: 0.5rem;
+      }
+
+      /* ==== PROMPT RECIPE ==== */
+      .prompt-formula {
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        position: relative;
+      }
+
+      .prompt-formula::before {
+        content: "FORMULA";
+        position: absolute;
+        top: -0.6rem;
+        left: 2rem;
+        background: var(--bg);
+        padding: 0 0.75rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--accent);
+        letter-spacing: 0.25em;
+      }
+
+      .formula-line {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: clamp(1.1rem, 2vw, 1.5rem);
+        line-height: 1.7;
+        color: var(--paper);
+      }
+
+      .formula-line .plus {
+        color: var(--accent);
+        font-style: normal;
+        font-family: "JetBrains Mono", monospace;
+        margin: 0 0.5rem;
+        font-size: 0.85em;
+      }
+
+      .formula-line .token {
+        color: var(--accent-2);
+        font-style: normal;
+        font-weight: 500;
+      }
+
+      .examples {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 800px) {
+        .examples {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .example {
+        background: var(--bg-2);
+        border-left: 3px solid var(--accent);
+        padding: 1.75rem;
+        position: relative;
+      }
+
+      .example .label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        color: var(--accent);
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+        display: block;
+      }
+
+      .example .prompt-text {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: var(--ink);
+      }
+
+      /* ==== TIPS GRID ==== */
+      .tips {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      @media (min-width: 700px) {
+        .tips {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (min-width: 1000px) {
+        .tips {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      .tip {
+        padding: 2rem;
+        border-right: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        transition: background 0.3s ease;
+      }
+
+      .tip:hover {
+        background: var(--bg-2);
+      }
+
+      .tip .num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--accent);
+        letter-spacing: 0.2em;
+        margin-bottom: 1rem;
+      }
+
+      .tip h5 {
+        font-family: "Fraunces", serif;
+        font-size: 1.25rem;
+        font-weight: 500;
+        color: var(--paper);
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
+      }
+
+      .tip p {
+        color: var(--ink-dim);
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+
+      /* ==== REFERENCE SYSTEM ==== */
+      .ref-system {
+        background: linear-gradient(135deg, var(--bg-2) 0%, var(--bg) 100%);
+        border: 1px solid var(--line);
+        padding: 2.5rem;
+        margin-top: 2rem;
+      }
+
+      .ref-system h4 {
+        font-family: "Fraunces", serif;
+        font-size: 1.5rem;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        color: var(--paper);
+      }
+
+      .ref-table {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        margin-top: 1.5rem;
+      }
+
+      .ref-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1.5rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--line);
+        align-items: center;
+      }
+
+      .ref-tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.85rem;
+        color: var(--accent);
+        background: rgba(255, 90, 31, 0.08);
+        padding: 0.35rem 0.7rem;
+        border-radius: 2px;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+
+      .ref-row p {
+        color: var(--ink-dim);
+        font-size: 0.95rem;
+      }
+
+      /* ==== TROUBLESHOOTING ==== */
+      .trouble {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .trouble-item {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        background: var(--bg-2);
+        border: 1px solid var(--line);
+      }
+
+      @media (min-width: 700px) {
+        .trouble-item {
+          grid-template-columns: 1fr 2fr;
+          gap: 2rem;
+          align-items: start;
+        }
+      }
+
+      .trouble-item .q {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: 1.05rem;
+        color: var(--accent-2);
+      }
+
+      .trouble-item .a {
+        color: var(--ink-dim);
+        font-size: 0.95rem;
+      }
+
+      /* ==== FOOTER ==== */
+      footer {
+        padding: 4rem clamp(1.5rem, 5vw, 5rem);
+        text-align: center;
+        background: var(--bg-2);
+      }
+
+      footer .end-mark {
+        font-family: "Fraunces", serif;
+        font-style: italic;
+        font-size: 2.5rem;
+        color: var(--accent);
+        margin-bottom: 1rem;
+        font-variation-settings: "opsz" 144;
+      }
+
+      footer p {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      /* ==== ENTRY ANIM ==== */
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      .reveal.in {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Subtle marquee at top */
+      .ticker {
+        overflow: hidden;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-2);
+        padding: 0.5rem 0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--ink-dim);
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .ticker-track {
+        display: inline-block;
+        animation: scroll 40s linear infinite;
+      }
+      .ticker-track span {
+        margin: 0 2rem;
+      }
+      .ticker-track span.hl {
+        color: var(--accent);
+      }
+
+      @keyframes scroll {
+        from {
+          transform: translateX(0);
+        }
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      /* Selection */
+      ::selection {
+        background: var(--accent);
+        color: var(--paper);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ticker">
+      <div class="ticker-track">
+        <span class="hl">◉ REC</span><span>Seedance 2.0</span
+        ><span>ByteDance Seed Lab</span><span class="hl">★</span
+        ><span>Multimodal Video Generation</span><span>4–15s clips</span
+        ><span>Up to 1080p</span><span class="hl">◉ REC</span
+        ><span>Seedance 2.0</span><span>ByteDance Seed Lab</span
+        ><span class="hl">★</span><span>Multimodal Video Generation</span
+        ><span>4–15s clips</span><span>Up to 1080p</span>
+      </div>
+    </div>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero">
+      <div class="hero-bar">
+        <div><span class="dot"></span>A field guide — edition 01</div>
+        <div>FRAME 001 / 042</div>
+      </div>
+
+      <div class="hero-main">
+        <div>
+          <div class="eyebrow reveal">Free path to AI cinema</div>
+          <h1 class="title reveal">
+            How to direct<br />
+            a film with <em>Seedance</em><br />
+            <span class="strike">without</span> a crew.
+          </h1>
+        </div>
+        <div class="hero-meta reveal">
+          <div class="hero-meta-row">
+            <strong>Model</strong>
+            Seedance 2.0 — ByteDance Seed Lab
+          </div>
+          <div class="hero-meta-row">
+            <strong>Inputs</strong>
+            Text · Image · Video · Audio
+          </div>
+          <div class="hero-meta-row">
+            <strong>Outputs</strong>
+            4–15s, up to 1080p, native audio
+          </div>
+          <div class="hero-meta-row">
+            <strong>Cost</strong>
+            Free daily credits on multiple platforms
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-footer">
+        <div>Scroll to begin →</div>
+        <div class="frame-marks">
+          <span class="fill"></span><span></span><span></span><span></span
+          ><span></span>
+        </div>
+        <div>EST. 2026 / EXP. NEVER</div>
+      </div>
+    </section>
+
+    <!-- ========== WHAT IS IT ========== -->
+    <section id="what">
+      <div class="section-head reveal">
+        <div class="section-num">01</div>
+        <h2>What you're actually working with.</h2>
+        <div class="tag">Briefing</div>
+      </div>
+
+      <p class="lead reveal">
+        Seedance 2.0 is a multimodal video model from ByteDance's Seed Lab,
+        launched February 12, 2026. You give it text, images, video clips, and
+        audio references — in any combination — and it returns a short film with
+        synchronized sound. The headline move: instead of writing increasingly
+        desperate prompts, you <em>show</em> the model what you want by
+        uploading references.
+      </p>
+
+      <div class="ref-system reveal">
+        <h4>Capacity in a single generation</h4>
+        <p style="color: var(--ink-dim); margin-top: 0.5rem">
+          You can stack references across modalities — the model figures out the
+          role of each on its own.
+        </p>
+        <div class="ref-table">
+          <div class="ref-row">
+            <span class="ref-tag">9 × IMAGE</span>
+            <p>Character faces, environments, style anchors, color palettes.</p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">3 × VIDEO</span>
+            <p>Camera moves, choreography, editing rhythm. Up to ~15s total.</p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">3 × AUDIO</span>
+            <p>Background music, sound effects, dialogue samples for sync.</p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">+ TEXT</span>
+            <p>
+              Scene description, camera direction, pacing, performance notes.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== WHERE FREE ========== -->
+    <section id="where">
+      <div class="section-head reveal">
+        <div class="section-num">02</div>
+        <h2>Where to use it for free.</h2>
+        <div class="tag">Access</div>
+      </div>
+
+      <p class="lead reveal">
+        Several platforms offer free daily credits. None are unlimited — you'll
+        burn through a daily allotment in 3–8 generations depending on length
+        and resolution. Stack accounts across platforms if you want more shots.
+      </p>
+
+      <div class="platforms">
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>Dreamina</h3>
+          <div class="platform-id">dreamina.capcut.com · ByteDance</div>
+          <p>
+            ByteDance's own consumer platform — the most direct path to the
+            model. English UI, browser-based, available outside China. Daily
+            free tokens reset every 24 hours, shared between image and video
+            generation.
+          </p>
+          <ul class="specs">
+            <li><span>Free tier</span><strong>~225 daily tokens</strong></li>
+            <li><span>Best for</span><strong>International users</strong></li>
+            <li><span>Signup</span><strong>Google / email</strong></li>
+          </ul>
+        </div>
+
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>Jimeng</h3>
+          <div class="platform-id">jimeng.jianying.com · ByteDance</div>
+          <p>
+            ByteDance's flagship creator suite — feature-complete and the most
+            generous on the free side. Interface is in Chinese, so plan for a
+            browser translator. Daily point allowance lets you keep iterating.
+          </p>
+          <ul class="specs">
+            <li>
+              <span>Free tier</span><strong>3 credits + 120 daily pts</strong>
+            </li>
+            <li><span>Best for</span><strong>Heavy iteration</strong></li>
+            <li><span>Login</span><strong>Douyin account</strong></li>
+          </ul>
+        </div>
+
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>Doubao</h3>
+          <div class="platform-id">doubao.com · ByteDance</div>
+          <p>
+            ByteDance's general AI assistant has Seedance 2.0 built into its
+            chat. Less of a studio interface, more of a "ask and receive" flow.
+            Good for casual one-offs without thinking about a creative pipeline.
+          </p>
+          <ul class="specs">
+            <li><span>Free tier</span><strong>Daily quota</strong></li>
+            <li><span>Best for</span><strong>Quick experiments</strong></li>
+            <li><span>Form factor</span><strong>App or web</strong></li>
+          </ul>
+        </div>
+
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>CapCut</h3>
+          <div class="platform-id">capcut.com · desktop &amp; mobile</div>
+          <p>
+            Already editing video? Seedance 2.0 is integrated into CapCut's AI
+            Video panel. Free accounts get a limited monthly quota; the upside
+            is you generate and edit in the same canvas. Availability varies by
+            region.
+          </p>
+          <ul class="specs">
+            <li><span>Free tier</span><strong>Monthly quota</strong></li>
+            <li><span>Best for</span><strong>Editors</strong></li>
+            <li>
+              <span>Platforms</span><strong>iOS / Android / desktop</strong>
+            </li>
+          </ul>
+        </div>
+
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>ImagineArt</h3>
+          <div class="platform-id">imagine.art</div>
+          <p>
+            Third-party host with a clean Western UI. New accounts get free
+            credits to test the model with no API key setup. Good if Dreamina
+            feels like too much platform.
+          </p>
+          <ul class="specs">
+            <li><span>Free tier</span><strong>Signup credits</strong></li>
+            <li><span>Best for</span><strong>First-time users</strong></li>
+            <li><span>Setup</span><strong>None</strong></li>
+          </ul>
+        </div>
+
+        <div class="platform-card reveal">
+          <div class="free-stamp">FREE</div>
+          <h3>OpenArt</h3>
+          <div class="platform-id">openart.ai</div>
+          <p>
+            Hosts Seedance 2.0 alongside Kling, Sora, Veo, and others — useful
+            when you want to A/B the same prompt across models without
+            re-uploading assets. Free credits to start; paid plans for volume.
+          </p>
+          <ul class="specs">
+            <li><span>Free tier</span><strong>Signup credits</strong></li>
+            <li><span>Best for</span><strong>Model comparison</strong></li>
+            <li><span>Output</span><strong>Up to 1080p</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== WORKFLOW ========== -->
+    <section id="workflow">
+      <div class="section-head reveal">
+        <div class="section-num">03</div>
+        <h2>The five-step shoot.</h2>
+        <div class="tag">Workflow</div>
+      </div>
+
+      <p class="lead reveal">
+        Same loop on every platform — only the buttons change. Treat the first
+        generation as a polaroid: it tells you which dial to turn next, not
+        whether you're done.
+      </p>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">i.</div>
+          <div>
+            <h4>Pick a mode that matches your strongest asset.</h4>
+            <p>
+              Have a vivid mental image and no files? Text-to-Video. Have a
+              single still you want to animate? Image-to-Video. Have a character
+              photo plus a dance clip plus a beat? Multimodal/References. The
+              model can accept up to 9 images, 3 videos, and 3 audio files in
+              one go — but start with whichever asset best anchors your idea.
+            </p>
+            <span class="mono-tag"
+              >Tip: start simple, layer references on retry</span
+            >
+          </div>
+        </div>
+
+        <div class="step reveal">
+          <div class="step-num">ii.</div>
+          <div>
+            <h4>Upload references, name them if the platform supports it.</h4>
+            <p>
+              On platforms that surface the
+              <span class="mono">@</span>-reference system, label each asset
+              (@Image1, @Video1, @Audio1) so your prompt can point to specific
+              files. Keep the labels consistent across edits — if the model has
+              to guess which file is which, you'll get drift.
+            </p>
+          </div>
+        </div>
+
+        <div class="step reveal">
+          <div class="step-num">iii.</div>
+          <div>
+            <h4>Write a structured prompt — not a paragraph.</h4>
+            <p>
+              Walls of text confuse the model. Use the formula in the next
+              section. Keep it under 200 words, lead with the subject and
+              action, end with style and constraints. Reference your uploaded
+              files by name where they apply.
+            </p>
+          </div>
+        </div>
+
+        <div class="step reveal">
+          <div class="step-num">iv.</div>
+          <div>
+            <h4>Set duration and resolution low for the first pass.</h4>
+            <p>
+              Generate 5 seconds at 720p while you're still iterating — shorter
+              clips render faster and cost fewer free credits per attempt. Once
+              the motion, composition, and reference fidelity are right, bump to
+              1080p and your final length (up to 15s).
+            </p>
+            <span class="mono-tag"
+              >5s @ 720p → iterate · 10s @ 1080p → final</span
+            >
+          </div>
+        </div>
+
+        <div class="step reveal">
+          <div class="step-num">v.</div>
+          <div>
+            <h4>Generate three variants. Change one thing at a time.</h4>
+            <p>
+              The single biggest habit for consistent results: never change
+              camera, subject, and lighting on the same retry. You won't know
+              what helped. Hold everything constant, move one dial, compare.
+              Then move the next.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PROMPTING ========== -->
+    <section id="prompt">
+      <div class="section-head reveal">
+        <div class="section-num">04</div>
+        <h2>The prompt recipe.</h2>
+        <div class="tag">Craft</div>
+      </div>
+
+      <p class="lead reveal">
+        Seedance 2.0 rewards specificity. The structure below covers the six
+        dimensions the model can actually act on — subject, setting, motion,
+        camera, style, and constraint. Skip any of them and the model fills the
+        gap, usually not the way you'd hope.
+      </p>
+
+      <div class="prompt-formula reveal">
+        <div class="formula-line">
+          <span class="token">Subject</span><span class="plus">+</span
+          ><span class="token">Setting</span>
+          <span class="plus">→</span>
+          <span class="token">Action</span>
+          <span class="plus">→</span>
+          <span class="token">Camera move</span>
+          <span class="plus">→</span>
+          <span class="token">Style &amp; lighting</span>
+          <span class="plus">→</span>
+          <span class="token">Pacing</span>
+          <span class="plus">→</span>
+          <span>(optional) <span class="token">Negatives</span></span>
+        </div>
+      </div>
+
+      <div class="examples">
+        <div class="example reveal">
+          <span class="label">★ Text-to-video</span>
+          <p class="prompt-text">
+            A young woman in a white linen dress steps onto a rooftop at golden
+            hour. She walks slowly toward the railing, hair lifting in a soft
+            breeze. Camera tracks behind her at waist height, then cranes up to
+            reveal the city skyline. Cinematic, warm backlight, shallow depth of
+            field, 35mm film grain. Slow, contemplative pacing.
+          </p>
+        </div>
+
+        <div class="example reveal">
+          <span class="label">★ Image-to-video</span>
+          <p class="prompt-text">
+            Animate
+            <span class="mono" style="color: var(--accent)">@Image1</span> as
+            the first frame. The subject turns slowly to face the camera,
+            expression softening into a small smile. Slight handheld camera
+            motion. Natural window light from the left. Subtle dust particles in
+            the air. 5 seconds, intimate, documentary tone.
+          </p>
+        </div>
+
+        <div class="example reveal">
+          <span class="label">★ Multimodal reference</span>
+          <p class="prompt-text">
+            Character from
+            <span class="mono" style="color: var(--accent)">@Image1</span>
+            dances in the style of
+            <span class="mono" style="color: var(--accent)">@Video1</span>.
+            Outfit references
+            <span class="mono" style="color: var(--accent)">@Image2</span>. Sync
+            the rhythm to
+            <span class="mono" style="color: var(--accent)">@Audio1</span>.
+            Setting: neon-lit alleyway at night, steam rising from grates.
+            Camera circles the subject. Music-video style.
+          </p>
+        </div>
+
+        <div class="example reveal">
+          <span class="label">★ Product shot</span>
+          <p class="prompt-text">
+            A sleek wireless headphone floats and rotates against a pure black
+            background. Soft studio lighting from above-right creates elegant
+            reflections on the matte surface. Smooth 360-degree rotation over 6
+            seconds. Premium commercial style, 4K cinematic quality. No text
+            overlays, no watermark.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== REFERENCE SYSTEM ========== -->
+    <section id="reference">
+      <div class="section-head reveal">
+        <div class="section-num">05</div>
+        <h2>The @-reference trick.</h2>
+        <div class="tag">Multimodal</div>
+      </div>
+
+      <p class="lead reveal">
+        The feature that actually sets Seedance 2.0 apart: every uploaded file
+        gets a handle you can call out in plain text. Think of it as casting —
+        you're not describing a dance, you're pointing at one.
+      </p>
+
+      <div class="ref-system reveal">
+        <h4>What each reference type controls</h4>
+        <div class="ref-table">
+          <div class="ref-row">
+            <span class="ref-tag">@Image1</span>
+            <p>
+              Character identity, outfit, environment, color palette, or
+              first/last frame anchor.
+            </p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">@Video1</span>
+            <p>
+              Camera movement, choreography, editing rhythm, visual effects
+              style. The model extracts motion, not pixels.
+            </p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">@Audio1</span>
+            <p>
+              Background music, sound effects, or a beat to sync visual rhythm
+              to. Native audio means lip-sync also works.
+            </p>
+          </div>
+          <div class="ref-row">
+            <span class="ref-tag">"reference @X's …"</span>
+            <p>
+              Be explicit about <em>what</em> to take from each file. "Reference
+              @Video1's camera move" tells the model to ignore the subjects in
+              that clip.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TIPS ========== -->
+    <section id="tips">
+      <div class="section-head reveal">
+        <div class="section-num">06</div>
+        <h2>Habits of the people getting good output.</h2>
+        <div class="tag">Practice</div>
+      </div>
+
+      <div class="tips">
+        <div class="tip reveal">
+          <div class="num">01 / KEEP IT SHORT</div>
+          <h5>Cap prompts under 200 words.</h5>
+          <p>
+            The model handles concise, structured prompts better than long
+            descriptive paragraphs. Cut adjectives that aren't doing work.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">02 / IMAGE FIRST</div>
+          <h5>If you have a still, start there.</h5>
+          <p>
+            Image-to-Video gives the model more to anchor to than text alone.
+            Consistency improves noticeably when there's a reference frame.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">03 / NEGATIVES</div>
+          <h5>State what you don't want.</h5>
+          <p>
+            "No text overlays, no watermark, no extra fingers" — quick
+            exclusions catch failure modes the model would otherwise reach for.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">04 / ONE DIAL</div>
+          <h5>Change one variable per retry.</h5>
+          <p>
+            Swap the camera move, or the lighting, or the subject — never all
+            three. Otherwise you can't tell what fixed it.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">05 / CINEMA VOCAB</div>
+          <h5>Use real camera language.</h5>
+          <p>
+            "Dolly in," "low-angle handheld," "fisheye," "rack focus." The model
+            was trained on film descriptions; speak the dialect.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">06 / TIMING WORDS</div>
+          <h5>Pacing matters more than you think.</h5>
+          <p>
+            "Slowly zooms in," "snap cut to," "long unbroken take." Tempo
+            instructions shape both visual rhythm and the audio sync.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">07 / DRAFT MODE</div>
+          <h5>Iterate at 720p, finish at 1080p.</h5>
+          <p>
+            You'll save credits and time. Reserve the higher resolution for the
+            take you're actually keeping.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">08 / NAME CONSISTENTLY</div>
+          <h5>Don't rename references mid-edit.</h5>
+          <p>
+            If you call the same asset @Image1 in one prompt and @Reference in
+            the next, you're making the model guess.
+          </p>
+        </div>
+
+        <div class="tip reveal">
+          <div class="num">09 / EXTEND, DON'T REGENERATE</div>
+          <h5>Use the extend feature on clips you like.</h5>
+          <p>
+            Seedance can continue a generated clip with consistent characters
+            and motion — cheaper than redoing the whole thing for length.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TROUBLE ========== -->
+    <section id="trouble">
+      <div class="section-head reveal">
+        <div class="section-num">07</div>
+        <h2>When it goes wrong.</h2>
+        <div class="tag">Debug</div>
+      </div>
+
+      <div class="trouble">
+        <div class="trouble-item reveal">
+          <div class="q">The character's face changes mid-clip.</div>
+          <div class="a">
+            Add a reference image of the face and call it out explicitly:
+            "Maintain the appearance of @Image1 throughout." Drop the duration
+            to 5–8 seconds — longer clips drift more.
+          </div>
+        </div>
+
+        <div class="trouble-item reveal">
+          <div class="q">Motion looks like a slideshow.</div>
+          <div class="a">
+            Your prompt is probably static. Add a verb of motion ("walks,"
+            "spins," "tracks across") and a camera instruction. The model
+            defaults to minimal movement when neither is specified.
+          </div>
+        </div>
+
+        <div class="trouble-item reveal">
+          <div class="q">The generate button is greyed out.</div>
+          <div class="a">
+            A reference doesn't meet input specs — usually image resolution,
+            aspect ratio, or file size. Hover the button on most platforms;
+            it'll tell you which file is the problem.
+          </div>
+        </div>
+
+        <div class="trouble-item reveal">
+          <div class="q">The audio doesn't match the action.</div>
+          <div class="a">
+            Either upload a reference audio clip and tell the prompt to sync to
+            it, or be more specific about sound in the prompt itself: "footsteps
+            on gravel," "low ambient hum." Native audio responds to description,
+            not just vibes.
+          </div>
+        </div>
+
+        <div class="trouble-item reveal">
+          <div class="q">The model refused my prompt.</div>
+          <div class="a">
+            Third-party content policy filters block requests involving public
+            figures, brand likenesses, explicit content, and certain violence.
+            Reword toward generic descriptions ("a tall man in a suit") rather
+            than names.
+          </div>
+        </div>
+
+        <div class="trouble-item reveal">
+          <div class="q">All my free credits are gone.</div>
+          <div class="a">
+            Most platforms reset daily. Stack accounts across Dreamina, Jimeng,
+            ImagineArt, and OpenArt to extend your free runway. Or batch all
+            your generations into one session per day.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer>
+      <div class="end-mark">— fin —</div>
+      <p>Now go generate something the algorithm didn't ask for.</p>
+    </footer>
+
+    <script>
+      // Stagger-reveal on scroll
+      const reveals = document.querySelectorAll(".reveal");
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry, i) => {
+            if (entry.isIntersecting) {
+              setTimeout(() => entry.target.classList.add("in"), i * 50);
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+      );
+
+      reveals.forEach((el) => observer.observe(el));
+
+      // Trigger hero immediately
+      document.querySelectorAll(".hero .reveal").forEach((el, i) => {
+        setTimeout(() => el.classList.add("in"), 100 + i * 150);
+      });
+    </script>
+  </body>
+</html>
