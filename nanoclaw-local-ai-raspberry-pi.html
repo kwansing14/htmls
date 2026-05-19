@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NanoClaw + Local AI on Raspberry Pi — Free Setup Guide</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-card: #131316;
+    --bg-elev: #1a1a1f;
+    --bg-elev-2: #20202a;
+    --border: #26262d;
+    --border-soft: #1f1f26;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --muted-2: #5e5e6b;
+    --accent: #c8ff2f;
+    --accent-soft: rgba(200, 255, 47, 0.12);
+    --accent-line: rgba(200, 255, 47, 0.30);
+    --warn: #ffb547;
+    --danger: #ff5b6b;
+    --ok: #4ad991;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(200,255,47,0.10), transparent 60%),
+      linear-gradient(180deg, #161618 0%, #0f0f12 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 720px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 500; }
+  .meta .dot { width: 4px; height: 4px; background: var(--muted-2); border-radius: 50%; display: inline-block; }
+
+  /* Section */
+  section { margin-bottom: 40px; }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  h3 {
+    font-size: 17px;
+    letter-spacing: -0.005em;
+    margin-bottom: 8px;
+  }
+  p { color: #d3d3dc; }
+  p + p { margin-top: 12px; }
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px;
+  }
+  .card + .card { margin-top: 16px; }
+
+  /* Diagram row */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 18px;
+  }
+  .flow .node {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .flow .node .name { font-weight: 600; font-size: 15px; }
+  .flow .node .role { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .flow .arrow {
+    align-self: center;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  @media (max-width: 720px) {
+    .flow {
+      grid-template-columns: 1fr;
+    }
+    .flow .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+
+  /* Reality check */
+  .callout {
+    background: linear-gradient(180deg, rgba(255,181,71,0.06), rgba(255,181,71,0.02));
+    border: 1px solid rgba(255,181,71,0.25);
+    border-radius: 14px;
+    padding: 18px 20px;
+    color: #f0ddc1;
+    font-size: 14.5px;
+  }
+  .callout strong { color: var(--warn); }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  td .pill {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step {
+    position: relative;
+    padding-left: 56px;
+    margin-bottom: 28px;
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent-line);
+    color: var(--accent);
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .step h3 { margin-bottom: 6px; }
+  .step .desc { color: var(--muted); font-size: 14.5px; margin-bottom: 12px; }
+
+  /* Code block */
+  .code {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d6f4ff;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code .label {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    background: var(--bg-elev-2);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .code .c { color: #6f6f7d; }
+  .code .k { color: var(--accent); }
+  .code .s { color: #ffd28a; }
+
+  /* Use case grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+  }
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .uc {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .uc .glyph {
+    display: inline-grid;
+    place-items: center;
+    width: 32px; height: 32px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .uc h3 { margin-bottom: 6px; }
+  .uc p { font-size: 14px; color: #c2c2cc; }
+  .uc .prompt {
+    margin-top: 12px;
+    background: var(--bg-elev);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    color: #d6f4ff;
+  }
+  .uc .prompt::before {
+    content: "›  ";
+    color: var(--accent);
+  }
+
+  /* Hardware spec list */
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  @media (max-width: 720px) {
+    .specs { grid-template-columns: 1fr; }
+  }
+  .specs .item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .specs .item .lbl {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .specs .item .val { color: var(--text); font-size: 14.5px; font-weight: 500; }
+  .specs .item .note { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  /* Troubleshooting */
+  .ts { display: grid; gap: 10px; }
+  .ts .row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .ts .row .sym { color: var(--warn); font-weight: 600; font-size: 14px; }
+  .ts .row .fix { color: #d3d3dc; font-size: 14.5px; }
+  @media (max-width: 720px) {
+    .ts .row { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--muted);
+    font-size: 13.5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  footer .links a { margin-right: 14px; }
+  footer .cost {
+    color: var(--ok);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="eyebrow">Setup guide · Alternative</span>
+    <h1>Run NanoClaw with a free local AI on a Raspberry Pi</h1>
+    <p class="subtitle">A pocket-sized, always-on AI agent. Lives on a Pi in your home network, sips power, runs 24/7, and never sends a byte to a cloud API. Pair NanoClaw (the slim ARM build of OpenClaw) with Ollama and a small open-weight model.</p>
+    <div class="meta">
+      <span>📅 <strong>May 2026</strong></span>
+      <span class="dot"></span>
+      <span>⏱ <strong>~15 min</strong> read</span>
+      <span class="dot"></span>
+      <span>🍓 <strong>Raspberry Pi 5</strong></span>
+      <span class="dot"></span>
+      <span>💸 Hardware: <strong>~$120</strong> · LLM cost: <strong style="color: var(--ok)">$0</strong></span>
+    </div>
+  </div>
+
+  <!-- What you're building -->
+  <section>
+    <div class="section-eyebrow">What you're building</div>
+    <h2>The stack</h2>
+    <p>NanoClaw is the trimmed-down ARM build of OpenClaw — same agent loop, fewer optional integrations, designed to run on a Pi as a long-lived daemon. It talks to Ollama on <code>localhost:11434</code> using the OpenAI-compatible API, so swapping the model later (or pointing at a beefier home server) is a one-line config change.</p>
+
+    <div class="flow">
+      <div class="node">
+        <div class="name">NanoClaw</div>
+        <div class="role">Agent daemon · ARM64</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="name">Ollama</div>
+        <div class="role">localhost:11434</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="name">Qwen 2.5 3B</div>
+        <div class="role">Local model · ~2 GB</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hardware -->
+  <section>
+    <div class="section-eyebrow">Pick your Pi</div>
+    <h2>Which Raspberry Pi?</h2>
+    <p>The model and the RAM size both matter — and they matter in that order. A Pi 5 is roughly <strong>2–3× faster</strong> than a Pi 4 at LLM inference thanks to a newer CPU, faster RAM, and a wider memory bus. Below 8 GB RAM you're stuck with sub-1B models that struggle with tool calling.</p>
+
+    <table>
+      <thead>
+        <tr><th>Pi model</th><th>Best model to run</th><th>Speed · Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Pi 5 · 16 GB <span class="pill">recommended</span></td>
+          <td>Qwen 2.5 3B Instruct</td>
+          <td>~4–6 tok/sec. Headroom for OS + agent + browser tools. The sweet spot.</td>
+        </tr>
+        <tr>
+          <td>Pi 5 · 8 GB</td>
+          <td>Qwen 2.5 3B Instruct</td>
+          <td>~4–6 tok/sec. Same speed, less headroom. Fine if you don't run a desktop on it.</td>
+        </tr>
+        <tr>
+          <td>Pi 4 · 8 GB</td>
+          <td>Llama 3.2 3B Instruct (Q4)</td>
+          <td>~1.5–2.5 tok/sec. Usable for short prompts. Painful for agent loops.</td>
+        </tr>
+        <tr>
+          <td>Pi 4 · 4 GB / Pi Zero 2 W</td>
+          <td>Qwen 2.5 0.5B Instruct</td>
+          <td>Tiny, weak at tool use. More of a toy than an agent. Skip.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:22px;">Bill of materials — required</h3>
+    <div class="specs">
+      <div class="item">
+        <div class="lbl">Board · ~$120</div>
+        <div class="val">Raspberry Pi 5 — 16 GB</div>
+        <div class="note">The 8 GB ($80) works too. 4 GB is too tight once OS + model + agent are loaded.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Cooling · ~$10</div>
+        <div class="val">Official Active Cooler</div>
+        <div class="note">Non-optional. Pi 5 thermal-throttles hard during sustained inference.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Power · ~$13</div>
+        <div class="val">Official 27 W USB-C PSU</div>
+        <div class="note">Phone chargers under-deliver and cause random reboots under load.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Boot storage · ~$10</div>
+        <div class="val">microSD card — 32 GB+ (A2, U3)</div>
+        <div class="note">SanDisk Extreme or Samsung Pro Plus. Needed even if you boot from NVMe later.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Network · free / ~$5</div>
+        <div class="val">Wi-Fi (built-in) or Ethernet cable</div>
+        <div class="note">Wired is more reliable for a 24/7 daemon. Any Cat5e+ cable.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Host machine · already own</div>
+        <div class="val">Laptop with SD card slot</div>
+        <div class="note">For flashing the SD card with Pi Imager. USB adapter works if no built-in slot.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:22px;">Strongly recommended</h3>
+    <div class="specs">
+      <div class="item">
+        <div class="lbl">Fast storage · ~$25 + ~$15</div>
+        <div class="val">NVMe SSD (256 GB) + M.2 HAT</div>
+        <div class="note">Pimoroni / Pineberry / official Pi M.2 HAT. Cuts model load times 5×, extends storage life.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Case · ~$12</div>
+        <div class="val">Official Pi 5 case (with fan cutout) or Argon NEO 5</div>
+        <div class="note">Argon NEO acts as a passive heatsink. Skip cases that block the cooler.</div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:22px;">Only needed for initial setup (skip if headless)</h3>
+    <div class="specs">
+      <div class="item">
+        <div class="lbl">Display cable · ~$8</div>
+        <div class="val">Micro-HDMI to HDMI cable</div>
+        <div class="note">Pi 5 uses micro-HDMI. Only needed if you're not setting up over SSH.</div>
+      </div>
+      <div class="item">
+        <div class="lbl">Input · already own</div>
+        <div class="val">USB keyboard + mouse</div>
+        <div class="note">Any wired USB set. Skip entirely if you do headless SSH setup via Pi Imager.</div>
+      </div>
+    </div>
+
+    <p style="margin-top:18px; color: var(--muted); font-size:14px;">
+      <strong style="color: var(--text);">Minimum to get running:</strong> ~$153 (Pi 5 16 GB + cooler + PSU + SD card). <strong style="color: var(--text);">Recommended build:</strong> ~$205 with NVMe + case. After that, electricity is the only ongoing cost — a Pi 5 draws ~5–8 W under inference load, roughly <strong style="color: var(--ok)">$8–12/year</strong> running 24/7.
+    </p>
+  </section>
+
+  <!-- Reality check -->
+  <section>
+    <div class="section-eyebrow">Before you start</div>
+    <h2>Raspberry Pi reality check</h2>
+    <div class="callout">
+      <strong>Heads up:</strong> The Pi is great as an <strong>always-on, low-power agent</strong> — not a fast one. Expect <strong>4–6 tokens/sec</strong> on a 3B model, ~10 seconds before the first token appears. That's bad for chat, fine for cron-triggered jobs and webhooks. Treat it like a tiny home server, not a desktop assistant.
+    </div>
+  </section>
+
+  <!-- Setup -->
+  <section>
+    <div class="section-eyebrow">Setup</div>
+    <h2>Step-by-step</h2>
+
+    <div class="steps">
+
+      <div class="step">
+        <h3>Flash Raspberry Pi OS Lite (64-bit)</h3>
+        <p class="desc">Use Raspberry Pi Imager. Pick the <strong>64-bit Lite</strong> image — no desktop, more RAM for the model. In the Imager's settings (gear icon), preconfigure SSH, hostname (<code>nanoclaw</code>), and Wi-Fi.</p>
+        <div class="code"><span class="label">shell</span><span class="c"># after first boot, ssh in from your laptop</span>
+ssh pi@nanoclaw.local
+
+<span class="c"># confirm you're on a 64-bit kernel</span>
+uname -m  <span class="c"># should print: aarch64</span>
+
+<span class="c"># update everything</span>
+sudo apt update &amp;&amp; sudo apt full-upgrade -y</div>
+      </div>
+
+      <div class="step">
+        <h3>Install Node 24 via NodeSource</h3>
+        <p class="desc">The apt default is too old. Use NodeSource's ARM64 repo.</p>
+        <div class="code"><span class="label">shell</span>curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt install -y nodejs
+node --version  <span class="c"># v24.x.x</span></div>
+      </div>
+
+      <div class="step">
+        <h3>Install &amp; start Ollama</h3>
+        <p class="desc">Ollama has a native ARM64 build. The installer registers it as a systemd service so it survives reboots — exactly what you want for a Pi.</p>
+        <div class="code"><span class="label">shell</span>curl -fsSL https://ollama.com/install.sh | sh
+
+<span class="c"># confirm the service is running</span>
+systemctl status ollama
+curl http://localhost:11434/api/tags</div>
+      </div>
+
+      <div class="step">
+        <h3>Pull a model</h3>
+        <p class="desc">Qwen 2.5 3B Instruct is the recommended pick — best tool-calling-per-byte for Pi 5 RAM budgets. Pull happens once and is cached on disk.</p>
+        <div class="code"><span class="label">shell</span>ollama pull qwen2.5:3b-instruct
+
+<span class="c"># on a Pi 4 (8 GB)? this is slower but lighter:</span>
+<span class="c"># ollama pull llama3.2:3b-instruct-q4_K_M</span>
+
+<span class="c"># smoke test — expect ~10s before first token</span>
+ollama run qwen2.5:3b-instruct "in 5 words, say hi"</div>
+      </div>
+
+      <div class="step">
+        <h3>Install NanoClaw</h3>
+        <p class="desc">Global npm install. NanoClaw ships an ARM64 binary; the install script picks the right one automatically.</p>
+        <div class="code"><span class="label">shell</span>sudo npm install -g nanoclaw@latest
+
+<span class="c"># one-time setup — installs the systemd unit</span>
+nanoclaw onboard --install-daemon --user pi</div>
+      </div>
+
+      <div class="step">
+        <h3>Point NanoClaw at Ollama</h3>
+        <p class="desc">Edit <code>~/.nanoclaw/nanoclaw.json</code>. Lower the agent's context window — keeps memory pressure down and avoids swap on smaller Pi boards.</p>
+        <div class="code"><span class="label">json5</span>{
+  <span class="k">providers</span>: {
+    <span class="k">ollama</span>: {
+      <span class="k">type</span>: <span class="s">"openai-compatible"</span>,
+      <span class="k">baseURL</span>: <span class="s">"http://localhost:11434/v1"</span>,
+      <span class="k">apiKey</span>: <span class="s">"ollama"</span>  <span class="c">// dummy — Ollama doesn't check it</span>
+    }
+  },
+  <span class="k">agent</span>: {
+    <span class="k">model</span>: <span class="s">"ollama/qwen2.5:3b-instruct"</span>,
+    <span class="k">contextWindow</span>: <span class="s">4096</span>,    <span class="c">// keep small on Pi</span>
+    <span class="k">maxIterations</span>: <span class="s">8</span>          <span class="c">// stop runaway loops</span>
+  }
+}</div>
+      </div>
+
+      <div class="step">
+        <h3>Smoke test &amp; expose it on the LAN</h3>
+        <p class="desc">Try a tiny tool-using task. Then bind NanoClaw to <code>0.0.0.0</code> so you can hit it from your laptop or trigger it via webhook.</p>
+        <div class="code"><span class="label">shell</span>cd ~
+nanoclaw "list the 5 largest files in my home directory"
+
+<span class="c"># expose the HTTP trigger on the LAN (port 7878 by default)</span>
+nanoclaw serve --host 0.0.0.0 --port 7878
+
+<span class="c"># from your laptop:</span>
+curl -X POST http://nanoclaw.local:7878/run \
+  -H "content-type: application/json" \
+  -d '{"prompt":"summarize today/'"'"'s news headlines"}'</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Use cases -->
+  <section>
+    <div class="section-eyebrow">What it's actually good for</div>
+    <h2>5 simple use cases (Pi edition)</h2>
+    <p>Treat the Pi like a <strong>cron-job assistant</strong>. Tasks that fire once or twice a day, take a few seconds of inference, and write the result somewhere (Telegram, a file, a webhook). Avoid anything interactive — latency will frustrate you.</p>
+
+    <div class="grid">
+
+      <div class="uc">
+        <div class="glyph">🌅</div>
+        <h3>Morning briefing</h3>
+        <p>Cron job at 7am. Fetches weather, your calendar, top RSS items, and your unread email count. Posts a 6-bullet briefing to Telegram.</p>
+        <div class="prompt">Build a morning briefing: weather for Berlin, my next 3 calendar events, top 3 BBC headlines, and unread email count. 6 bullets max. Post to Telegram chat 12345.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">📡</div>
+        <h3>RSS &amp; newsletter digest</h3>
+        <p>Every evening, pulls 20+ feeds, clusters by topic, drops a single-page Markdown digest into a shared folder. Replaces doom-scrolling.</p>
+        <div class="prompt">Read the last 24h of items from my RSS feeds. Cluster by topic. Write a Markdown digest with 8 sections max. Save to /srv/digests/{date}.md.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">🏠</div>
+        <h3>Home Assistant command parser</h3>
+        <p>Webhook target for Home Assistant. Takes fuzzy voice transcripts ("kinda chilly in here") and converts them to exact HA service calls.</p>
+        <div class="prompt">Parse this transcript into a Home Assistant service call (JSON, no prose): "{transcript}". Available services: climate.set_temperature, light.turn_on, scene.activate.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">🔔</div>
+        <h3>Self-hosted notification filter</h3>
+        <p>Sits between your webhook firehose (GitHub, Sentry, alerts) and your phone. Drops noise, keeps anything that looks urgent.</p>
+        <div class="prompt">Classify this webhook payload as URGENT, NORMAL, or NOISE. Only return one word. If URGENT, also write a 12-word summary.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">📦</div>
+        <h3>Package tracking janitor</h3>
+        <p>Polls your tracking emails inbox, extracts tracking numbers, hits carrier APIs, posts status changes to a channel. Quiet until something moves.</p>
+        <div class="prompt">Extract tracking numbers and carriers from new emails in the "shipments" label. For each: poll the carrier, compare to last status, post only changes.</div>
+      </div>
+
+      <div class="uc">
+        <div class="glyph">🧹</div>
+        <h3>Backup verifier</h3>
+        <p>Nightly: checks rsync logs, looks for failures or skipped files, posts a one-line "all good" or a short error breakdown. Cheap peace of mind.</p>
+        <div class="prompt">Read /var/log/rsync/*.log from the last run. If all transfers succeeded, reply "OK". Otherwise list failures grouped by host, max 10 lines.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section>
+    <div class="section-eyebrow">When things break</div>
+    <h2>Troubleshooting</h2>
+    <div class="ts">
+      <div class="row">
+        <div class="sym">Random reboots under load</div>
+        <div class="fix">Almost always undervoltage. Use the official 27 W PSU, not a phone charger. Check <code>vcgencmd get_throttled</code> — anything non-zero = power or thermal issue.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Inference crawls / fans max out</div>
+        <div class="fix">Pi 5 throttles at 80°C. Install the official Active Cooler if you haven't. Drop to a smaller model (<code>qwen2.5:1.5b-instruct</code>) or a heavier quantization (<code>q4_0</code>).</div>
+      </div>
+      <div class="row">
+        <div class="sym">Out of memory during pull or first run</div>
+        <div class="fix">Make sure swap is enabled and at least 2 GB: edit <code>/etc/dphys-swapfile</code>, set <code>CONF_SWAPSIZE=2048</code>, then <code>sudo systemctl restart dphys-swapfile</code>.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Tool calls don't fire</div>
+        <div class="fix">Make sure the model name ends in <code>-instruct</code>. Pi-sized base models can't tool-call reliably. Qwen 2.5 Instruct and Llama 3.2 Instruct both work.</div>
+      </div>
+      <div class="row">
+        <div class="sym">SD card wears out / corruption</div>
+        <div class="fix">Move Ollama's model dir to an NVMe SSD or USB SSD: stop the service, <code>mv ~/.ollama /mnt/ssd/ollama</code>, symlink it back. SD cards aren't built for the write volume.</div>
+      </div>
+      <div class="row">
+        <div class="sym">Need more speed than the Pi gives</div>
+        <div class="fix">Same NanoClaw config, different <code>baseURL</code>: point it at a free hosted endpoint (Groq, Gemini free tier, OpenRouter free models). Pi becomes the always-on orchestrator, not the inference box.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="links">
+      <a href="https://github.com/nanoclaw/nanoclaw">NanoClaw on GitHub</a>
+      <a href="https://docs.nanoclaw.ai/">Docs</a>
+      <a href="https://ollama.com/">Ollama</a>
+      <a href="https://www.raspberrypi.com/">Raspberry Pi</a>
+    </div>
+    <div>Total LLM cost in this setup: <span class="cost">$0 / month</span></div>
+  </footer>
+
+</div>
+</body>
+</html>
