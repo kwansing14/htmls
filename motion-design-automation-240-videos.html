@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>240 Videos/Month, Zero After Effects — 4 Motion Design Principles</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-card: #131316;
+    --bg-elev: #1a1a1f;
+    --bg-elev-2: #20202a;
+    --border: #26262d;
+    --border-soft: #1f1f26;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --muted-2: #5e5e6b;
+    --accent: #c8ff2f;
+    --accent-soft: rgba(200, 255, 47, 0.12);
+    --accent-line: rgba(200, 255, 47, 0.30);
+    --warn: #ffb547;
+    --danger: #ff5b6b;
+    --ok: #4ad991;
+    --blue: #6ab7ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(200,255,47,0.10), transparent 60%),
+      linear-gradient(180deg, #161618 0%, #0f0f12 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 720px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 500; }
+  .meta .dot { width: 4px; height: 4px; background: var(--muted-2); border-radius: 50%; display: inline-block; }
+
+  /* Hero stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 28px;
+  }
+  @media (max-width: 720px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+  .stat {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 18px;
+  }
+  .stat .num {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+  .stat .num.muted-num { color: var(--text); }
+  .stat .label { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* Section */
+  section { margin-bottom: 40px; }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  h3 {
+    font-size: 17px;
+    letter-spacing: -0.005em;
+    margin-bottom: 8px;
+  }
+  p { color: #d3d3dc; }
+  p + p { margin-top: 12px; }
+
+  /* Card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px;
+  }
+  .card + .card { margin-top: 16px; }
+
+  /* Before / After */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 36px 1fr;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 18px;
+  }
+  @media (max-width: 720px) {
+    .compare { grid-template-columns: 1fr; }
+    .compare .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+  .col {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .col.before { border-color: rgba(255,91,107,0.25); background: linear-gradient(180deg, rgba(255,91,107,0.05), transparent); }
+  .col.after { border-color: rgba(74,217,145,0.25); background: linear-gradient(180deg, rgba(74,217,145,0.05), transparent); }
+  .col .tag {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .col.before .tag { color: var(--danger); }
+  .col.after .tag { color: var(--ok); }
+  .col .body { font-size: 14.5px; color: #d3d3dc; }
+  .compare .arrow {
+    align-self: center;
+    text-align: center;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  /* Principle block */
+  .principle {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 30px;
+    margin-top: 18px;
+    position: relative;
+  }
+  .principle .num-tag {
+    position: absolute;
+    top: -14px;
+    left: 24px;
+    background: var(--accent);
+    color: #0a0a0b;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+  .principle h3 {
+    font-size: 22px;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .principle .jp {
+    color: var(--muted-2);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  /* SVG diagram frame */
+  .diagram {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 22px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .diagram svg { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+  .diagram .cap {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Pipeline pills */
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+    align-items: center;
+    justify-content: center;
+  }
+  .pill-step {
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .pill-arrow { color: var(--accent); font-weight: 600; }
+
+  /* Mistake callout */
+  .mistake {
+    background: linear-gradient(180deg, rgba(255,181,71,0.06), rgba(255,181,71,0.02));
+    border: 1px solid rgba(255,181,71,0.25);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    font-size: 14px;
+    color: #f0ddc1;
+  }
+  .mistake .tag {
+    display: inline-block;
+    color: var(--warn);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  /* Code */
+  .code {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #d6f4ff;
+    overflow-x: auto;
+    white-space: pre;
+    margin-top: 12px;
+  }
+  .code .c { color: #6f6f7d; }
+  .code .k { color: var(--accent); }
+  .code .s { color: #ffd28a; }
+
+  /* Quick win */
+  .quickwin {
+    background: linear-gradient(180deg, rgba(200,255,47,0.06), rgba(200,255,47,0.02));
+    border: 1px solid var(--accent-line);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+  .quickwin h3 { color: var(--accent); }
+
+  /* Summary grid */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+  }
+  @media (max-width: 720px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .summary-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 13px;
+  }
+  .summary-card .n {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .summary-card .t { color: var(--text); font-weight: 500; }
+  .summary-card .d { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+
+  /* Source */
+  .source {
+    margin-top: 32px;
+    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .source a { color: var(--accent); }
+
+  /* Tiny list */
+  ul.clean { list-style: none; padding: 0; }
+  ul.clean li {
+    padding: 6px 0;
+    color: #d3d3dc;
+    font-size: 14.5px;
+    border-bottom: 1px dashed var(--border-soft);
+  }
+  ul.clean li:last-child { border-bottom: 0; }
+  ul.clean li::before {
+    content: "→";
+    color: var(--accent);
+    margin-right: 10px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="eyebrow">Video Summary · Translated from Japanese</span>
+    <h1>240 videos a month — without opening After Effects for 8 months.</h1>
+    <p class="subtitle">A Japanese creator broke every "motion" in their videos down to just 4 types, handed each one to Claude Code + FFmpeg + Python, and turned a 4–8 hour AE workflow into a one-command render. Here's the full design.</p>
+
+    <div class="meta">
+      <span><strong>Original title:</strong> AEを8ヶ月開いてないのに月240本動いてる、動きの設計4つ</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num">240</div>
+        <div class="label">videos / month, automated</div>
+      </div>
+      <div class="stat">
+        <div class="num">0</div>
+        <div class="label">times AE opened in 8 months</div>
+      </div>
+      <div class="stat">
+        <div class="num muted-num">4–8h</div>
+        <div class="label">per video → near zero</div>
+      </div>
+      <div class="stat">
+        <div class="num muted-num">4</div>
+        <div class="label">types of motion, total</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- THE INSIGHT -->
+  <section>
+    <span class="section-eyebrow">The Core Insight</span>
+    <h2>"I wrote down every kind of movement in my videos. There were only 4."</h2>
+    <div class="card" style="margin-top: 14px;">
+      <p>Before this rebuild, each video took 4–8 hours in After Effects: keyframing diagrams to appear, keyframing zooms on stills, lip-syncing characters, and picking transitions one at a time. Cap was 8 videos/month.</p>
+      <p>Then the creator wrote down every distinct kind of motion that ever appeared in their finished videos. The list was tiny:</p>
+      <ul class="clean" style="margin-top: 14px;">
+        <li>Diagrams where lines / shapes appear in sequence</li>
+        <li>Still images that slowly zoom or pan</li>
+        <li>Character mouths that open and close while talking</li>
+        <li>Scene transitions between segments</li>
+      </ul>
+      <p style="margin-top: 14px;">That's it. So the project became: hand each of those 4 things to a deterministic pipeline (image-gen AI + Python + FFmpeg + sub-agents), and never touch AE again.</p>
+    </div>
+  </section>
+
+  <!-- PRINCIPLE 1 -->
+  <section>
+    <span class="section-eyebrow">Principle 01</span>
+
+    <div class="principle">
+      <span class="num-tag">01</span>
+      <h3>Diagrams that animate in sequence — split one image into ~60 line clusters</h3>
+      <div class="jp">図の順番に出る · "zu no junban ni deru"</div>
+
+      <div class="compare">
+        <div class="col before">
+          <div class="tag">Before · After Effects</div>
+          <div class="body">Place each shape on its own layer, set keyframes for when each one appears. ~5–10 sec per slide × 30 slides = several hours.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col after">
+          <div class="tag">After · Code</div>
+          <div class="body">Generate the slide as one PNG with AI, then let Python find ~60 connected line clusters in it. A sub-agent decides reading order, FFmpeg reveals them one by one.</div>
+        </div>
+      </div>
+
+      <!-- SVG: connected components diagram -->
+      <div class="diagram">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Single PNG split into 4 connected components, reordered, then revealed one at a time">
+          <defs>
+            <marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L10,5 L0,10 z" fill="#c8ff2f"/>
+            </marker>
+          </defs>
+          <!-- Stage 1: full image -->
+          <g transform="translate(20,40)">
+            <rect width="150" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+            <rect x="14" y="22" width="44" height="28" rx="4" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+            <text x="36" y="40" text-anchor="middle" font-size="10" fill="#ececf1" font-family="ui-sans-serif">Box A</text>
+            <path d="M62 36 L92 36" stroke="#ececf1" stroke-width="1.6" marker-end="url(#arr1)"/>
+            <rect x="96" y="22" width="44" height="28" rx="4" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+            <text x="118" y="40" text-anchor="middle" font-size="10" fill="#ececf1" font-family="ui-sans-serif">Box B</text>
+            <circle cx="38" cy="86" r="10" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+            <path d="M62 86 L92 86" stroke="#ececf1" stroke-width="1.6"/>
+            <rect x="96" y="76" width="44" height="20" rx="3" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+            <text x="75" y="110" text-anchor="middle" font-size="9" fill="#8a8a99" font-family="ui-sans-serif">1 flat PNG</text>
+          </g>
+          <text x="180" y="105" font-size="20" fill="#c8ff2f" font-weight="600">→</text>
+
+          <!-- Stage 2: split into clusters -->
+          <g transform="translate(208,40)">
+            <rect width="150" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+            <rect x="14" y="22" width="44" height="28" rx="4" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+            <path d="M62 36 L92 36" stroke="#6ab7ff" stroke-width="1.8" marker-end="url(#arr1)"/>
+            <rect x="96" y="22" width="44" height="28" rx="4" fill="none" stroke="#ffb547" stroke-width="1.6"/>
+            <circle cx="38" cy="86" r="10" fill="none" stroke="#ff5b6b" stroke-width="1.6"/>
+            <rect x="96" y="76" width="44" height="20" rx="3" fill="none" stroke="#4ad991" stroke-width="1.6"/>
+            <text x="75" y="110" text-anchor="middle" font-size="9" fill="#8a8a99" font-family="ui-sans-serif">~60 clusters (Python)</text>
+          </g>
+          <text x="368" y="105" font-size="20" fill="#c8ff2f" font-weight="600">→</text>
+
+          <!-- Stage 3: ordered sequence -->
+          <g transform="translate(396,40)">
+            <rect width="150" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+            <text x="75" y="38" text-anchor="middle" font-size="11" fill="#ececf1" font-family="ui-sans-serif">Sub-agent decides order</text>
+            <g font-size="11" font-family="ui-monospace,monospace" fill="#d6f4ff">
+              <text x="20" y="62">1. Box A</text>
+              <text x="20" y="78">2. arrow</text>
+              <text x="20" y="94">3. Box B</text>
+              <text x="20" y="110">4. icon</text>
+            </g>
+          </g>
+          <text x="556" y="105" font-size="20" fill="#c8ff2f" font-weight="600">→</text>
+
+          <!-- Stage 4: reveal animation -->
+          <g transform="translate(584,40)">
+            <rect width="118" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+            <text x="59" y="22" text-anchor="middle" font-size="10" fill="#8a8a99" font-family="ui-sans-serif">FFmpeg reveal</text>
+            <rect x="14" y="34" width="34" height="22" rx="3" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+            <rect x="14" y="62" width="42" height="22" rx="3" fill="none" stroke="#c8ff2f" stroke-width="1.6" opacity="0.65"/>
+            <rect x="14" y="90" width="60" height="22" rx="3" fill="none" stroke="#c8ff2f" stroke-width="1.6" opacity="0.35"/>
+            <text x="80" y="50" font-size="9" fill="#8a8a99">slide-in</text>
+            <text x="80" y="78" font-size="9" fill="#8a8a99">pop</text>
+            <text x="80" y="106" font-size="9" fill="#8a8a99">fade</text>
+          </g>
+        </svg>
+        <div class="cap">1 PNG → ~60 clusters → ordered list → animated reveal · ~10 sec per slide</div>
+      </div>
+
+      <p><strong>5 reveal styles</strong> the sub-agent picks from per cluster: stretch left→right, stretch top→bottom, pop-expand, bounce in, soft fade.</p>
+      <p>30 slides render in <strong>~5 minutes</strong> at 6× parallel. The same job in AE used to take hours.</p>
+
+      <div class="mistake">
+        <div class="tag">Mistake learned · once</div>
+        Forgot to run the cluster-order conversion step before the sub-agent. The render finished happily — but the final video showed the full diagram, static, from frame one. Silent failure is the scariest kind. Added an automatic guard that re-runs the step if the order file isn't translated.
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLE 2 -->
+  <section>
+    <span class="section-eyebrow">Principle 02</span>
+
+    <div class="principle">
+      <span class="num-tag">02</span>
+      <h3>Still-image zoom & pan — one line of FFmpeg replaces 15 minutes of keyframing</h3>
+      <div class="jp">静止画のより · "seishiga no yori"</div>
+
+      <div class="compare">
+        <div class="col before">
+          <div class="tag">Before · After Effects</div>
+          <div class="body">Manually keyframe a zoom on every still — ~30 sec per image. 30 stills per video = 15 minutes of keyboard work, every single video.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col after">
+          <div class="tag">After · FFmpeg zoompan</div>
+          <div class="body">Add one line to the encode command. Long-form: 1.00 → 1.15 zoom over 2–5 sec. Vertical shorts: 1.00 → 1.06 (smaller screen, gentler push).</div>
+        </div>
+      </div>
+
+      <!-- SVG: zoom illustration -->
+      <div class="diagram">
+        <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three frames of a still image being slowly zoomed from 1.0 to 1.15">
+          <g font-family="ui-sans-serif" font-size="11" fill="#8a8a99">
+            <!-- Frame 1 -->
+            <g transform="translate(40,30)">
+              <rect width="180" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+              <rect x="40" y="30" width="100" height="60" rx="4" fill="none" stroke="#6ab7ff" stroke-width="1.6"/>
+              <circle cx="90" cy="60" r="18" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="90" y="172" text-anchor="middle">t = 0s · scale 1.00</text>
+            </g>
+            <!-- Frame 2 -->
+            <g transform="translate(270,30)">
+              <rect width="180" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+              <rect x="30" y="22" width="120" height="76" rx="4" fill="none" stroke="#6ab7ff" stroke-width="1.6"/>
+              <circle cx="90" cy="60" r="22" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="90" y="172" text-anchor="middle">t = 2.5s · scale 1.08</text>
+            </g>
+            <!-- Frame 3 -->
+            <g transform="translate(500,30)">
+              <rect width="180" height="120" rx="8" fill="#20202a" stroke="#26262d"/>
+              <rect x="22" y="14" width="136" height="92" rx="4" fill="none" stroke="#6ab7ff" stroke-width="1.6"/>
+              <circle cx="90" cy="60" r="26" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="90" y="172" text-anchor="middle">t = 5s · scale 1.15</text>
+            </g>
+          </g>
+        </svg>
+        <div class="cap">A barely-perceptible zoom — enough to read as "moving" without inducing motion sickness.</div>
+      </div>
+
+      <p>When a client asks "can you make that zoom a little faster?" the answer is: change one FFmpeg argument, rebuild in 5 minutes. No timeline to re-open.</p>
+
+      <div class="mistake">
+        <div class="tag">Mistake learned · once</div>
+        Once pushed the zoom to 1.00 → 1.30. Viewers complained of motion sickness. Re-watched it — yeah, way too aggressive. <strong>The rule now:</strong> use the minimum zoom that still reads as motion. 1.15 max for long-form.
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLE 3 -->
+  <section>
+    <span class="section-eyebrow">Principle 03</span>
+
+    <div class="principle">
+      <span class="num-tag">03</span>
+      <h3>Character lip-sync — don't listen to the audio. Switch mouths 7× per second, mechanically.</h3>
+      <div class="jp">キャラの口パク · "chara no kuchipaku"</div>
+
+      <div class="compare">
+        <div class="col before">
+          <div class="tag">Before · After Effects</div>
+          <div class="body">Listen to the narration, keyframe mouth open/close 5–8× per second. A 5-min video = ~1,500 manual keyframes. Impossible by hand.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col after">
+          <div class="tag">After · One-line formula</div>
+          <div class="body">Ignore the audio waveform entirely. Flip the mouth open/closed at a fixed 7 Hz. 5-min video = 2,100 switches, all from one expression.</div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mouth open/close cycle at 7 Hz, driven by floor(t*7) mod 2">
+          <!-- Timeline -->
+          <line x1="40" y1="120" x2="680" y2="120" stroke="#26262d" stroke-width="1.5"/>
+          <!-- Mouth states -->
+          <g font-family="ui-sans-serif" font-size="10" fill="#8a8a99">
+            <!-- closed -->
+            <g transform="translate(60,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <line x1="-6" y1="8" x2="6" y2="8" stroke="#ececf1" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">closed</text>
+            </g>
+            <!-- open -->
+            <g transform="translate(150,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <ellipse cx="0" cy="8" rx="6" ry="4" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">open</text>
+            </g>
+            <!-- closed -->
+            <g transform="translate(240,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <line x1="-6" y1="8" x2="6" y2="8" stroke="#ececf1" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">closed</text>
+            </g>
+            <g transform="translate(330,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <ellipse cx="0" cy="8" rx="6" ry="4" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">open</text>
+            </g>
+            <g transform="translate(420,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <line x1="-6" y1="8" x2="6" y2="8" stroke="#ececf1" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">closed</text>
+            </g>
+            <g transform="translate(510,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <ellipse cx="0" cy="8" rx="6" ry="4" fill="none" stroke="#c8ff2f" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">open</text>
+            </g>
+            <g transform="translate(600,80)">
+              <circle r="22" fill="#1a1a1f" stroke="#26262d"/>
+              <circle cx="-7" cy="-4" r="2" fill="#ececf1"/>
+              <circle cx="7" cy="-4" r="2" fill="#ececf1"/>
+              <line x1="-6" y1="8" x2="6" y2="8" stroke="#ececf1" stroke-width="1.6"/>
+              <text x="0" y="60" text-anchor="middle">closed</text>
+            </g>
+          </g>
+          <!-- formula -->
+          <g transform="translate(360,180)" text-anchor="middle" font-family="ui-monospace,monospace">
+            <text font-size="14" fill="#c8ff2f">mouth_open = floor(t × 7) mod 2</text>
+            <text y="20" font-size="11" fill="#8a8a99">No waveform analysis. No timeline. Nobody notices.</text>
+          </g>
+        </svg>
+      </div>
+
+      <p>The creator never opened the audio editor, never looked at a waveform. <em>"Nobody has ever told me the mouth and audio don't match."</em> 7 Hz happens to fall inside the natural cadence the human eye reads as "talking."</p>
+
+      <h3 style="margin-top: 18px;">Expressions, same trick</h3>
+      <p>4 expressions (joy / neutral / surprise / worry) × 2 mouth states = 8 PNGs per character. 3 characters × 8 = 24 image files total. The script just labels each line "joy" or "worry" and the right PNG gets pulled.</p>
+
+      <div class="mistake">
+        <div class="tag">Mistake learned · once</div>
+        Spun up 4 Voicebox engines in parallel for different channels. All 4 tried to write to the same pronunciation dictionary at once — dictionary corrupted, all 4 engines went silent. Now: 4 can <em>read</em> in parallel, only 1 may <em>write</em> at a time. Lock added.
+      </div>
+    </div>
+  </section>
+
+  <!-- PRINCIPLE 4 -->
+  <section>
+    <span class="section-eyebrow">Principle 04</span>
+
+    <div class="principle">
+      <span class="num-tag">04</span>
+      <h3>Scene transitions — hexagonal shutters, two motions, nothing else.</h3>
+      <div class="jp">場面切り替え · "bamen kirikae"</div>
+
+      <div class="compare">
+        <div class="col before">
+          <div class="tag">Before · After Effects</div>
+          <div class="body">Pick a cross-dissolve / wipe / slide preset per scene, drop it on the timeline. 1–2 min per scene × 20–30 scenes = 30–60 min/video.</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="col after">
+          <div class="tag">After · Two fixed motions</div>
+          <div class="body">Hexagonal mask on character bust-ups (left/right of frame). Scene change = pop-in (0.35s). Expression change = soft cross-fade (0.4s). That's the entire transition library.</div>
+        </div>
+      </div>
+
+      <div class="diagram">
+        <svg viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hexagonal mask vs circular mask comparison plus pop and cross-fade transitions">
+          <g font-family="ui-sans-serif">
+            <!-- Circle (rejected) -->
+            <g transform="translate(80,40)">
+              <circle r="42" fill="#1a1a1f" stroke="#ff5b6b" stroke-width="1.6" stroke-dasharray="4 3"/>
+              <circle cx="-10" cy="-8" r="3" fill="#ececf1"/>
+              <circle cx="10" cy="-8" r="3" fill="#ececf1"/>
+              <path d="M -8 10 Q 0 16 8 10" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+              <text y="78" text-anchor="middle" font-size="11" fill="#ff5b6b">Circle ✕</text>
+              <text y="94" text-anchor="middle" font-size="10" fill="#8a8a99">reads as rounded photo crop</text>
+            </g>
+
+            <!-- Hexagon (used) -->
+            <g transform="translate(260,40)">
+              <polygon points="-42,0 -21,-36 21,-36 42,0 21,36 -21,36" fill="#1a1a1f" stroke="#c8ff2f" stroke-width="1.8"/>
+              <circle cx="-10" cy="-8" r="3" fill="#ececf1"/>
+              <circle cx="10" cy="-8" r="3" fill="#ececf1"/>
+              <path d="M -8 10 Q 0 16 8 10" fill="none" stroke="#ececf1" stroke-width="1.6"/>
+              <text y="78" text-anchor="middle" font-size="11" fill="#c8ff2f">Hexagon ✓</text>
+              <text y="94" text-anchor="middle" font-size="10" fill="#8a8a99">reads as "cinematic crop"</text>
+            </g>
+
+            <!-- Pop transition -->
+            <g transform="translate(440,40)">
+              <polygon points="-14,0 -7,-12 7,-12 14,0 7,12 -7,12" fill="none" stroke="#c8ff2f" stroke-width="1.4" opacity="0.3"/>
+              <polygon points="-28,0 -14,-24 14,-24 28,0 14,24 -14,24" fill="none" stroke="#c8ff2f" stroke-width="1.6" opacity="0.6"/>
+              <polygon points="-42,0 -21,-36 21,-36 42,0 21,36 -21,36" fill="#1a1a1f" stroke="#c8ff2f" stroke-width="1.8"/>
+              <text y="78" text-anchor="middle" font-size="11" fill="#ececf1">Pop · 0.35s</text>
+              <text y="94" text-anchor="middle" font-size="10" fill="#8a8a99">scene change</text>
+            </g>
+
+            <!-- Cross-fade -->
+            <g transform="translate(620,40)">
+              <polygon points="-42,0 -21,-36 21,-36 42,0 21,36 -21,36" fill="#1a1a1f" stroke="#c8ff2f" stroke-width="1.8" opacity="0.5"/>
+              <polygon points="-32,10 -16,-24 16,-24 32,10 16,44 -16,44" fill="#1a1a1f" stroke="#6ab7ff" stroke-width="1.8" opacity="0.8" transform="translate(8,-6)"/>
+              <text y="78" text-anchor="middle" font-size="11" fill="#ececf1">Cross-fade · 0.4s</text>
+              <text y="94" text-anchor="middle" font-size="10" fill="#8a8a99">expression change</text>
+            </g>
+          </g>
+        </svg>
+        <div class="cap">Bust-up = top 28% of the standing character art, masked to a hexagon. Two motions handle every cut.</div>
+      </div>
+
+      <div class="mistake">
+        <div class="tag">Mistake learned · once</div>
+        Used to add a constant ~4-second-cycle wobble to the masked windows to "feel lively." Viewers said it was distracting. Re-watched it — yep, eyes wouldn't settle. Killed the wobble. The pop + cross-fade alone give enough perceived motion; killing the wobble made the whiteboard easier to read.
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK WIN -->
+  <section>
+    <span class="section-eyebrow">For Anyone Still Editing in AE</span>
+    <div class="quickwin">
+      <h3>You don't have to rip out your whole workflow.</h3>
+      <p style="margin-top:8px;">If you're a part-time editor doing ~10 videos a month at 5 hours each, the creator's quick estimate: <strong>adopt just Principle 02 (FFmpeg zoom) and Principle 04 (hexagon wipes)</strong> and you save <strong>1–2 hours per video</strong>. That's 10–20 hours back in your month without changing your whole pipeline.</p>
+    </div>
+  </section>
+
+  <!-- SUMMARY -->
+  <section>
+    <span class="section-eyebrow">In One View</span>
+    <h2>The whole motion design, on one screen</h2>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="n">01 · DIAGRAMS</div>
+        <div class="t">1 PNG → ~60 line clusters → ordered reveal</div>
+        <div class="d">10 sec/slide, no AE layers</div>
+      </div>
+      <div class="summary-card">
+        <div class="n">02 · STILLS</div>
+        <div class="t">FFmpeg <code>zoompan</code> 1.0 → 1.15</div>
+        <div class="d">0 keyframes, 1 line of args</div>
+      </div>
+      <div class="summary-card">
+        <div class="n">03 · LIP-SYNC</div>
+        <div class="t">7 Hz mechanical mouth flip</div>
+        <div class="d">2,100 switches/video, no waveform</div>
+      </div>
+      <div class="summary-card">
+        <div class="n">04 · TRANSITIONS</div>
+        <div class="t">Hexagon pop (0.35s) + fade (0.4s)</div>
+        <div class="d">No wobble. Eyes settle.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAKEAWAY -->
+  <section>
+    <div class="card">
+      <h3>The closing thought, paraphrased</h3>
+      <p style="margin-top:10px;">"Eight months ago, every video cost me 4–8 hours of motion work. Now that work is one line of arguments per render. 8 videos a month became 240. When my kid gets sick or I lose a day to family stuff, the pipeline keeps shipping — at worst the schedule slips one day. I've made four real mistakes along the way: a video where nothing animated, a zoom that made people sick, a dictionary corrupted by 4 parallel writers, and a wobble that distracted everyone. Each one made the system harder to break. After Effects probably won't open again any time soon."</p>
+    </div>
+  </section>
+
+  <div class="source">
+    Source video (Japanese): <a href="https://www.youtube.com/watch?v=n-Ew_nndXFw" target="_blank" rel="noopener">youtube.com/watch?v=n-Ew_nndXFw</a> · Title: <em>AEを8ヶ月開いてないのに月240本動いてる、動きの設計4つ</em> · Summary translated from the auto-captioned Japanese transcript.
+  </div>
+
+</div>
+</body>
+</html>
