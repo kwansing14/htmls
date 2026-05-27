@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Xikipedia — Wikipedia as a Social Media Feed, and the Tiny Algorithm Behind It</title>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --bg-card: #131316;
+    --bg-elev: #1a1a1f;
+    --bg-elev-2: #20202a;
+    --border: #26262d;
+    --border-soft: #1f1f26;
+    --text: #ececf1;
+    --muted: #8a8a99;
+    --muted-2: #5e5e6b;
+    --accent: #c8ff2f;
+    --accent-soft: rgba(200, 255, 47, 0.12);
+    --accent-line: rgba(200, 255, 47, 0.30);
+    --warn: #ffb547;
+    --danger: #ff5b6b;
+    --ok: #4ad991;
+    --blue: #6ec1ff;
+    --pink: #ff8fbf;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 24px 96px;
+  }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(800px 300px at 20% 0%, rgba(200,255,47,0.10), transparent 60%),
+      linear-gradient(180deg, #161618 0%, #0f0f12 100%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 36px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    max-width: 760px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin-top: 22px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .meta strong { color: var(--text); font-weight: 500; }
+  .meta .dot { width: 4px; height: 4px; background: var(--muted-2); border-radius: 50%; display: inline-block; }
+
+  section { margin-bottom: 40px; }
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    margin-bottom: 14px;
+  }
+  h3 {
+    font-size: 17px;
+    letter-spacing: -0.005em;
+    margin-bottom: 8px;
+  }
+  p { color: #d3d3dc; }
+  p + p { margin-top: 12px; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 26px;
+  }
+  .card + .card { margin-top: 16px; }
+
+  /* Pipeline */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 18px;
+  }
+  .flow .node {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .flow .node .name { font-weight: 600; font-size: 15px; }
+  .flow .node .role { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .flow .arrow {
+    align-self: center;
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+  }
+  @media (max-width: 720px) {
+    .flow { grid-template-columns: 1fr; }
+    .flow .arrow { transform: rotate(90deg); margin: 4px auto; }
+  }
+
+  /* Action table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  td.num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; }
+  td .pill {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+  .pos { color: var(--ok); }
+  .neg { color: var(--danger); }
+
+  /* Callouts */
+  .callout {
+    background: linear-gradient(180deg, rgba(255,181,71,0.06), rgba(255,181,71,0.02));
+    border: 1px solid rgba(255,181,71,0.25);
+    border-radius: 14px;
+    padding: 18px 20px;
+    color: #f0ddc1;
+    font-size: 14.5px;
+  }
+  .callout strong { color: var(--warn); }
+  .callout.note {
+    background: linear-gradient(180deg, rgba(110,193,255,0.06), rgba(110,193,255,0.02));
+    border: 1px solid rgba(110,193,255,0.25);
+    color: #cfe7ff;
+  }
+  .callout.note strong { color: var(--blue); }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step {
+    position: relative;
+    padding-left: 56px;
+    margin-bottom: 28px;
+  }
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: var(--bg-elev);
+    border: 1px solid var(--accent-line);
+    color: var(--accent);
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .step h3 { margin-bottom: 6px; }
+  .step .desc { color: var(--muted); font-size: 14.5px; margin-bottom: 12px; }
+
+  /* Code */
+  .code {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #d6f4ff;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code .label {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    background: var(--bg-elev-2);
+    padding: 3px 8px;
+    border-radius: 999px;
+  }
+  .code .c { color: #6f6f7d; }
+  .code .k { color: var(--accent); }
+  .code .s { color: #ffd28a; }
+  .code .n { color: #ff8fbf; }
+  .code .f { color: #6ec1ff; }
+
+  /* Two col */
+  .grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+  }
+  @media (max-width: 720px) {
+    .grid2 { grid-template-columns: 1fr; }
+  }
+  .feat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .feat .glyph {
+    display: inline-grid;
+    place-items: center;
+    width: 32px; height: 32px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  .feat h3 { margin-bottom: 6px; }
+  .feat p { font-size: 14px; color: #c2c2cc; }
+
+  /* Selection bar chart */
+  .bars {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 60px;
+    gap: 12px;
+    align-items: center;
+    font-size: 14px;
+  }
+  .bar-label { color: var(--text); }
+  .bar-label small { color: var(--muted); display: block; font-size: 12px; }
+  .bar-track {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    height: 14px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #87c918);
+    border-radius: 999px;
+  }
+  .bar-fill.alt { background: linear-gradient(90deg, var(--blue), #3a82d9); }
+  .bar-fill.rand { background: linear-gradient(90deg, var(--pink), #d05c95); }
+  .bar-pct {
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    text-align: right;
+  }
+  @media (max-width: 720px) {
+    .bar-row { grid-template-columns: 1fr; }
+    .bar-pct { text-align: left; }
+  }
+
+  /* Stack list */
+  ul.stack {
+    list-style: none;
+    margin-top: 8px;
+  }
+  ul.stack li {
+    padding: 10px 0;
+    border-top: 1px solid var(--border-soft);
+    color: #d3d3dc;
+    font-size: 14.5px;
+  }
+  ul.stack li:first-child { border-top: 0; }
+  ul.stack li strong { color: var(--text); }
+  ul.stack li .tag {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Footer */
+  .foot {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--muted);
+    font-size: 13px;
+    display: flex; flex-wrap: wrap; gap: 12px;
+    justify-content: space-between;
+  }
+  .foot a { color: var(--muted); }
+  .foot a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="eyebrow">Project Deep Dive</span>
+    <h1>Xikipedia: Wikipedia, restyled as a doom-scrollable feed</h1>
+    <p class="subtitle">
+      A single-page web app by <a href="https://github.com/rebane2001" target="_blank" rel="noopener">rebane2001</a> that turns Simple Wikipedia into a TikTok-style feed — and uses a pure-JavaScript, ~50-line recommender to learn what you like, on-device, with zero machine learning.
+    </p>
+    <div class="meta">
+      <span>📦 <strong>Repo:</strong> <a href="https://github.com/rebane2001/xikipedia" target="_blank" rel="noopener">github.com/rebane2001/xikipedia</a></span>
+      <span class="dot"></span>
+      <span>🌐 <strong>Live:</strong> <a href="https://xikipedia.org/" target="_blank" rel="noopener">xikipedia.org</a></span>
+      <span class="dot"></span>
+      <span>📜 <strong>License:</strong> AGPLv3</span>
+      <span class="dot"></span>
+      <span>🧠 <strong>Algorithm:</strong> client-side, no ML</span>
+    </div>
+  </header>
+
+  <!-- WHAT IT IS -->
+  <section>
+    <span class="section-eyebrow">01 · What it is</span>
+    <h2>A pseudo social-media feed wrapped around Wikipedia</h2>
+    <div class="card">
+      <p>
+        Xikipedia is a single HTML file (plus a small service worker and a compressed JSON blob) that loads ~all of <strong>Simple Wikipedia</strong> into the browser and presents each article as a "post" in an infinite vertical feed — title, short summary, optional image, a Like button.
+      </p>
+      <p>
+        The author calls it a <em>demonstration</em>: proof that even a basic, non-ML algorithm with no signals from other users can rapidly learn what you engage with and feed you more of it. There is no backend, no telemetry, no recommendation service. Everything runs on your device, in JavaScript, against a local dataset.
+      </p>
+      <p>
+        Once loaded, the whole app works offline and can be installed as a PWA. Profiles, algorithm state, and stats persist in browser storage.
+      </p>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section>
+    <span class="section-eyebrow">02 · Data pipeline</span>
+    <h2>From Wikipedia dump to a 1-file dataset</h2>
+    <div class="card">
+      <p>
+        <code>process_data.py</code> in the repo ingests two MediaWiki dumps and produces a single <code>smoldata.json.br</code> (Brotli-compressed JSON) that the page slurps in at startup.
+      </p>
+      <div class="flow">
+        <div class="node">
+          <div class="name">XML articles dump</div>
+          <div class="role">simplewiki-*-pages-articles-multistream.xml.bz2</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <div class="name">process_data.py</div>
+          <div class="role">parse wikitext, strip refs, extract intro, categories, thumbnail</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="node">
+          <div class="name">smoldata.json.br</div>
+          <div class="role">pages + categories + pagelinks, Brotli-compressed</div>
+        </div>
+      </div>
+      <p style="margin-top:18px;">
+        For each article the script extracts: the first ~300 chars of clean text, the list of categories (Wikipedia's own category tree), a candidate thumbnail filename, and a "disambiguation" flag. A separate pass over the <code>pagelinks</code> SQL dump joins each article with its outgoing links. The result is a flat list of pages, each carrying its <strong>categories + pagelinks</strong> — those are the "tags" the algorithm will reason about.
+      </p>
+      <div class="callout note" style="margin-top:14px;">
+        <strong>Why both?</strong> Categories give broad topical signal (e.g. <em>"Programming languages"</em>); pagelinks give fine-grained associative signal (the article about <em>Python</em> links to <em>Guido van Rossum</em>, <em>Monty Python</em>, <em>scripting language</em>). Treating both as flat features lets the scoring system learn taste across topics <em>and</em> across vibes.
+      </div>
+    </div>
+  </section>
+
+  <!-- ALGORITHM -->
+  <section>
+    <span class="section-eyebrow">03 · The algorithm</span>
+    <h2>A category-scoring system that fits on a napkin</h2>
+
+    <div class="card">
+      <h3>Core idea</h3>
+      <p>
+        Every category and every linked page is a feature. The user has a single dictionary, <code>categoryScores</code>, mapping each feature → an integer score. When you engage with a post, every feature attached to that post gets the same delta added to its score. When the next post is selected, its score is the sum of the scores of all its features.
+      </p>
+      <p>
+        That's the whole model. No vectors, no embeddings, no gradients. Just <em>"if you liked posts tagged X, posts tagged X are now worth more points."</em>
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Engagement signals</h3>
+      <p>Each interaction adds the same delta to <em>every</em> category and pagelink that post carries:</p>
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Δ score</th><th>Intuition</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Scroll past (no interaction)</td><td class="num neg">−5</td><td>Mild dislike. Applied to every post the moment it shows.</td></tr>
+          <tr><td>Like</td><td class="num pos">+50 + 4 × posts_since_last_like</td><td>The longer you went without liking, the more this Like counts. Punishes bait, rewards rare enthusiasm.</td></tr>
+          <tr><td>Tap article title/body</td><td class="num pos">+75</td><td>Opens the Wikipedia article in a new tab. Strong intent signal.</td></tr>
+          <tr><td>Tap image</td><td class="num pos">+100</td><td>Strongest signal. You stopped to look.</td></tr>
+        </tbody>
+      </table>
+      <div class="code" style="margin-top:18px;">
+<span class="label">JS</span><span class="k">function</span> <span class="f">engagePost</span>(post, amount) {
+    post.allCategories.<span class="f">forEach</span>(e =&gt; categoryScores[e] = (categoryScores[e] ?? <span class="n">0</span>) + amount);
+    <span class="k">return</span> amount;
+}</div>
+      <p style="margin-top:14px;">
+        Three lines. <code>allCategories</code> is the post's Wikipedia categories <em>plus</em> its outgoing pagelinks. Every one of them moves by the same amount. That's the entire credit-assignment mechanism.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>Per-post base score</h3>
+      <p>Before category scores are summed, each candidate gets a small base score:</p>
+      <ul class="stack">
+        <li><strong>+5</strong> if the post has a thumbnail image. <span class="tag">Discovery bias</span> — posts with pictures feel better in a feed, so the system nudges them up slightly when nothing else is known.</li>
+        <li><strong>(3<sup>seen</sup> − 1) × −50,000</strong> penalty for repeats. <span class="tag">Anti-repeat</span> — first time: 0 penalty. Second time: −100,000. Third: −1,300,000. It explodes geometrically so re-runs essentially can't win unless every category is on fire.</li>
+        <li><strong>−1,000</strong> starting score for the <em>"given names"</em> and <em>"surnames"</em> categories. <span class="tag">Prior</span> — without this, almost every biography article would dominate (nearly all of them carry these two categories).</li>
+      </ul>
+      <div class="callout" style="margin-top:14px;">
+        <strong>Note:</strong> the README says the repeat penalty is <code>−5,000</code>, but the shipped <code>index.html</code> uses <code>−50,000</code>. Same shape (geometric), one order of magnitude harsher than the docs claim.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Candidate generation: 10,000 random pulls</h3>
+      <p>
+        For each post in the feed, the algorithm does <em>not</em> score the whole dataset. Instead, it samples <strong>10,000 random pages</strong> from the dataset and scores only those. This is a deliberate efficiency-vs-quality tradeoff: scoring all ~250k Simple Wikipedia pages on every scroll would be prohibitively expensive in the browser, while 10k is plenty for a stochastic feed.
+      </p>
+      <div class="code" style="margin-top:14px;">
+<span class="label">JS</span><span class="k">const</span> potentialPosts = [...<span class="f">Array</span>(<span class="n">10000</span>)]
+  .<span class="f">map</span>(e =&gt; pagesArr[<span class="f">Math.floor</span>(<span class="f">Math.random</span>() * pagesArr.length)])
+  .<span class="f">map</span>(post =&gt; {
+    <span class="k">const</span> initialScore = (post.thumb ? <span class="n">5</span> : <span class="n">0</span>) + (<span class="n">3</span>**(post.seen ?? <span class="n">0</span>) - <span class="n">1</span>) * <span class="n">-50000</span>;
+    post.score = [...post.allCategories]
+      .<span class="f">reduce</span>((sum, cat) =&gt; sum + (categoryScores[cat] ?? <span class="n">0</span>), initialScore);
+    <span class="k">return</span> post;
+  });</div>
+    </div>
+
+    <div class="card">
+      <h3>Selection: three dice, three personalities</h3>
+      <p>From the 10,000 candidates, the algorithm picks the next post using one of three strategies, chosen randomly:</p>
+
+      <div class="bars">
+        <div class="bar-row">
+          <div class="bar-label">Weighted random sample<small>Probability ∝ score</small></div>
+          <div class="bar-track"><div class="bar-fill" style="width: 40%;"></div></div>
+          <div class="bar-pct">40%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Highest-scoring post<small>Pure greedy</small></div>
+          <div class="bar-track"><div class="bar-fill alt" style="width: 42%;"></div></div>
+          <div class="bar-pct">42%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Completely random<small>Uniform over the 10k</small></div>
+          <div class="bar-track"><div class="bar-fill rand" style="width: 18%;"></div></div>
+          <div class="bar-pct">18%</div>
+        </div>
+      </div>
+
+      <p style="margin-top:18px;">
+        The three branches are an explicit <strong>exploit / explore</strong> mix:
+      </p>
+      <ul class="stack">
+        <li><strong>Weighted random (40%)</strong> — picks proportional to <em>(score − minScore)</em>, so higher-scoring posts are more likely but everything has a shot. This is the "soft personalization" branch. <span class="tag">Soft exploit</span></li>
+        <li><strong>Greedy (42%)</strong> — picks the single highest-scoring candidate out of 10,000. This is what makes the feed feel like it's "locking in" on a topic. <span class="tag">Hard exploit</span></li>
+        <li><strong>Random (18%)</strong> — totally ignores scores. Keeps the feed from collapsing into a single subject and surfaces things you'd never search for. <span class="tag">Explore</span></li>
+      </ul>
+
+      <div class="callout note" style="margin-top:14px;">
+        <strong>Implementation detail:</strong> in the actual code, the second and third branches are nested under <code>else if (Math.random() &gt; 0.3)</code>. That is, <em>after</em> the 40% weighted branch fails, the remaining 60% splits 70/30 → 42% greedy / 18% random. The README's numbers match exactly.
+      </div>
+
+      <div class="code" style="margin-top:14px;">
+<span class="label">JS</span><span class="k">if</span> (<span class="f">Math.random</span>() &lt; <span class="n">0.4</span>) {
+    <span class="c">// weighted random: probability proportional to (score - minScore)</span>
+    <span class="k">const</span> minScore = <span class="f">Math.min</span>(...potentialPosts.<span class="f">map</span>(e =&gt; e.score));
+    <span class="k">const</span> maxScore = potentialPosts.<span class="f">reduce</span>((s, p) =&gt; s + p.score - minScore, <span class="n">0</span>);
+    <span class="k">const</span> target  = <span class="f">Math.random</span>() * maxScore;
+    <span class="k">let</span> running = <span class="n">0</span>;
+    <span class="k">while</span> (running &lt; target &amp;&amp; potentialPosts.length) {
+        bestPost = potentialPosts.<span class="f">pop</span>();
+        running += bestPost.score - minScore;
+    }
+} <span class="k">else if</span> (<span class="f">Math.random</span>() &gt; <span class="n">0.3</span>) {
+    <span class="c">// greedy: highest-scoring candidate wins</span>
+    potentialPosts.<span class="f">forEach</span>(p =&gt; {
+        <span class="k">if</span> (p.score &gt; highestScore) { bestPost = p; highestScore = p.score; }
+    });
+}
+<span class="c">// else: bestPost stays as the first random candidate (the 18% explore branch)</span></div>
+    </div>
+  </section>
+
+  <!-- WHY IT WORKS -->
+  <section>
+    <span class="section-eyebrow">04 · Why it works</span>
+    <h2>How a 50-line algorithm imitates "the algorithm"</h2>
+    <div class="grid2">
+      <div class="feat">
+        <span class="glyph">⚡</span>
+        <h3>Dense signal per click</h3>
+        <p>Because every category and pagelink on the post gets the same delta, a single Like updates <em>dozens</em> of features at once. After 5 likes, the model already has hundreds of category votes — enough to clearly prefer "World War II battles" over "Pokémon Gen II."</p>
+      </div>
+      <div class="feat">
+        <span class="glyph">🔁</span>
+        <h3>Constant negative feedback</h3>
+        <p>The default action — scrolling past — is also a signal (−5). This is the secret sauce: you don't need explicit dislikes when the act of moving on is itself data. Lots of "scrolled past biography" votes drive down the biography features fast.</p>
+      </div>
+      <div class="feat">
+        <span class="glyph">🎲</span>
+        <h3>Hard-coded exploration</h3>
+        <p>18% pure-random + 40% weighted-random means the feed never goes purely greedy. Even with strong preferences, ~58% of posts come from non-deterministic branches, so accidental discovery is baked in.</p>
+      </div>
+      <div class="feat">
+        <span class="glyph">🧱</span>
+        <h3>Crushing repeat penalty</h3>
+        <p>The geometric −50,000 × (3<sup>seen</sup>−1) is brutal by design. It guarantees that the greedy branch can't get stuck in a 2-post loop, which is the failure mode this kind of system is most prone to.</p>
+      </div>
+      <div class="feat">
+        <span class="glyph">🚫</span>
+        <h3>Prior corrections</h3>
+        <p>"Given names" and "surnames" start at −1,000 because virtually every biography on Wikipedia carries them. Without this hand-tuned prior, the model would conclude after one Like that you love biographies of <em>everyone</em>.</p>
+      </div>
+      <div class="feat">
+        <span class="glyph">📈</span>
+        <h3>Like ramp</h3>
+        <p>Liking is worth <code>50 + 4·posts_since_last_like</code>. A Like after scrolling 30 posts is worth +170 — a strong, rare signal. Spamming Likes flattens to +50. The system trusts you more when you're picky.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WALKTHROUGH -->
+  <section>
+    <span class="section-eyebrow">05 · One iteration, end to end</span>
+    <h2>What happens between two scrolls</h2>
+    <div class="card">
+      <div class="steps">
+        <div class="step">
+          <h3>You see post N and scroll past</h3>
+          <div class="desc"><code>engagePost(N, -5)</code> runs. Every category and pagelink attached to post N has its score decremented by 5.</div>
+        </div>
+        <div class="step">
+          <h3>The page calls <code>getNextPost()</code></h3>
+          <div class="desc">10,000 random pages are sampled from <code>pagesArr</code>. For each one, the algorithm computes <code>initialScore + Σ categoryScores[cat]</code>.</div>
+        </div>
+        <div class="step">
+          <h3>One die is rolled</h3>
+          <div class="desc">With <code>Math.random() &lt; 0.4</code> the weighted-random branch fires. Otherwise a second die decides greedy (42%) or fully random (18%).</div>
+        </div>
+        <div class="step">
+          <h3>The chosen post is rendered</h3>
+          <div class="desc">Its <code>seen</code> counter increments by 1 — guaranteeing a 100,000-point penalty if it ever shows up in a future candidate pool.</div>
+        </div>
+        <div class="step">
+          <h3>If you Like / tap / open the image…</h3>
+          <div class="desc"><code>engagePost(post, +50…+100)</code> runs and dozens of features shift in your favor at once. The next call to <code>getNextPost()</code> will land somewhere related — but not too related, thanks to the 18% random branch.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STACK -->
+  <section>
+    <span class="section-eyebrow">06 · Tech stack</span>
+    <h2>What's actually shipped</h2>
+    <div class="card">
+      <ul class="stack">
+        <li><strong>index.html</strong> — a single ~55 KB file containing all markup, all CSS, and all the JavaScript including the algorithm. No build step. <span class="tag">HTML 87%</span></li>
+        <li><strong>sw.js</strong> — a service worker that caches the app shell + dataset for full offline use and PWA installability.</li>
+        <li><strong>app.webmanifest</strong> — PWA manifest so iOS/Android/desktop can install Xikipedia as a native-feeling app with its own icon.</li>
+        <li><strong>smoldata.json.br</strong> — Brotli-compressed dataset of pages, categories, and pagelinks. Loaded once, decompressed in-browser.</li>
+        <li><strong>process_data.py</strong> — the only Python in the project. Parses MediaWiki XML + pagelinks SQL into the JSON dataset. <span class="tag">Python 8%</span></li>
+        <li><strong>localStorage</strong> — holds profiles, <code>categoryScores</code>, seen posts, liked posts, time-spent stats. No remote storage.</li>
+      </ul>
+      <p style="margin-top:14px;">
+        The split on GitHub — HTML 87.2%, Python 7.8%, JS 5.0% — slightly overstates how little JS there is, because all the JS lives inside <code>index.html</code> and gets counted as HTML.
+      </p>
+    </div>
+  </section>
+
+  <!-- TAKEAWAYS -->
+  <section>
+    <span class="section-eyebrow">07 · Takeaways</span>
+    <h2>What this project is really saying</h2>
+    <div class="card">
+      <p>
+        Xikipedia is, on one level, a joke: Wikipedia as a brain-rot feed. But the source code is a precise, readable argument that <strong>"the algorithm"</strong> — the thing platforms talk about as if it were a vast inscrutable AI — can be reproduced in tens of lines of vanilla JS, with no neural net, no user clustering, and no data leaving the device.
+      </p>
+      <p>
+        The ingredients are mundane: tag your content, pick a few engagement signals, give every signal a hand-tuned weight, add a repeat penalty, and mix exploit with explore via a coin flip. Run it locally. The result still feels eerily personalized within a dozen scrolls.
+      </p>
+      <p>
+        It's a useful piece of evidence the next time you hear that recommender systems must be opaque, must be ML-driven, or must collect data on you to work.
+      </p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>Source &amp; live demo: <a href="https://github.com/rebane2001/xikipedia" target="_blank" rel="noopener">github.com/rebane2001/xikipedia</a> · <a href="https://xikipedia.org/" target="_blank" rel="noopener">xikipedia.org</a></span>
+    <span>Project © rebane2001, AGPLv3 · Write-up by kwansing</span>
+  </div>
+</div>
+</body>
+</html>
