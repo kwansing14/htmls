@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Build Your Own Minimalist AI Note Device — A Guide</title>
+<style>
+  :root {
+    --paper: #f4f1ea;
+    --paper-2: #ece7dc;
+    --ink: #1c1a17;
+    --ink-soft: #4a463f;
+    --ink-faint: #8a8478;
+    --rule: #d8d2c4;
+    --accent: #b5402c;
+    --accent-soft: #f0e3df;
+    --card: #fbf9f3;
+    --shadow: 0 1px 2px rgba(28,26,23,.06), 0 8px 28px rgba(28,26,23,.06);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #faf8f1 0%, var(--paper) 55%) fixed;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--accent-soft); }
+
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px 120px;
+  }
+
+  /* ---- Masthead ---- */
+  header.masthead {
+    text-align: center;
+    padding: 72px 0 44px;
+    border-bottom: 3px double var(--rule);
+    margin-bottom: 8px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .32em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+  }
+
+  h1 {
+    font-size: clamp(34px, 6vw, 56px);
+    line-height: 1.05;
+    margin: 0 0 18px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+  }
+
+  .dek {
+    font-size: 19px;
+    color: var(--ink-soft);
+    max-width: 56ch;
+    margin: 0 auto;
+    font-style: italic;
+  }
+
+  .byline {
+    margin-top: 26px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: .04em;
+    color: var(--ink-faint);
+  }
+  .byline a { color: var(--accent); }
+
+  /* ---- The device sketch ---- */
+  .device {
+    display: block;
+    margin: 40px auto 8px;
+    width: 168px;
+    filter: drop-shadow(0 12px 24px rgba(28,26,23,.12));
+  }
+
+  /* ---- TOC ---- */
+  nav.toc {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin: 44px 0;
+    box-shadow: var(--shadow);
+  }
+  nav.toc h2 {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+  nav.toc ol {
+    margin: 0; padding: 0;
+    list-style: none;
+    counter-reset: toc;
+    columns: 2;
+    column-gap: 36px;
+  }
+  nav.toc li {
+    counter-increment: toc;
+    margin: 0 0 9px;
+    font-size: 16px;
+    break-inside: avoid;
+  }
+  nav.toc li a {
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+  }
+  nav.toc li a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    flex: none;
+  }
+  nav.toc li a:hover { color: var(--accent); }
+
+  /* ---- Sections ---- */
+  section { margin: 56px 0; scroll-margin-top: 24px; }
+
+  h2.sec {
+    font-size: 27px;
+    letter-spacing: -.01em;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  h2.sec .num {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 3px 8px;
+    flex: none;
+    transform: translateY(-3px);
+  }
+  .sec-rule { height: 1px; background: var(--rule); margin: 14px 0 22px; }
+
+  p { margin: 0 0 18px; }
+
+  a { color: var(--accent); text-underline-offset: 3px; }
+
+  strong { font-weight: 600; }
+
+  .lead { font-size: 19px; color: var(--ink-soft); }
+
+  /* ---- Callout / note ---- */
+  .note {
+    background: var(--paper-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin: 22px 0;
+    font-size: 16.5px;
+  }
+  .note .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  /* ---- Bill of materials table ---- */
+  .bom {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-family: var(--sans);
+    font-size: 15.5px;
+  }
+  .bom th, .bom td {
+    text-align: left;
+    padding: 13px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .bom thead th {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom: 2px solid var(--ink);
+  }
+  .bom td.price { font-family: var(--mono); white-space: nowrap; color: var(--ink-soft); }
+  .bom tr:last-child td { border-bottom: none; }
+  .bom .item { font-weight: 600; color: var(--ink); }
+  .bom .sub { color: var(--ink-faint); font-size: 13.5px; }
+
+  /* ---- Steps ---- */
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 24px 0; }
+  ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 26px 56px;
+    margin: 0;
+  }
+  ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: -2px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps > li::after {
+    content: "";
+    position: absolute;
+    left: 17.5px; top: 38px; bottom: 4px;
+    width: 1px; background: var(--rule);
+  }
+  ol.steps > li:last-child::after { display: none; }
+  ol.steps h3 { margin: 4px 0 8px; font-size: 19px; }
+  ol.steps p { font-size: 16.5px; margin-bottom: 10px; }
+
+  ul.tight { padding-left: 22px; margin: 10px 0 16px; }
+  ul.tight li { margin-bottom: 7px; font-size: 16.5px; }
+
+  /* ---- Code ---- */
+  pre {
+    background: #1c1a17;
+    color: #ece7dc;
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.6;
+    margin: 18px 0;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: var(--paper-2);
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+
+  /* ---- Link cards ---- */
+  .links { display: grid; gap: 12px; margin: 24px 0; }
+  .linkcard {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 15px 18px;
+    text-decoration: none;
+    color: var(--ink);
+    transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .linkcard:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+  .linkcard .ico {
+    flex: none;
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px;
+  }
+  .linkcard .meta { min-width: 0; }
+  .linkcard .meta .t { font-weight: 600; font-size: 16.5px; font-family: var(--sans); }
+  .linkcard .meta .u {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;
+  }
+  .linkcard .arrow { margin-left: auto; color: var(--ink-faint); font-size: 18px; flex: none; }
+
+  /* ---- Cost summary ---- */
+  .cost {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    margin: 24px 0;
+  }
+  .cost .chip {
+    flex: 1 1 150px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 16px 18px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .cost .chip .big { font-family: var(--mono); font-size: 26px; font-weight: 600; }
+  .cost .chip .lbl { font-family: var(--sans); font-size: 12.5px; color: var(--ink-faint); margin-top: 4px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ---- Footer ---- */
+  footer {
+    text-align: center;
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 3px double var(--rule);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: .04em;
+  }
+  footer p { margin: 6px 0; }
+
+  @media (max-width: 560px) {
+    body { font-size: 17px; }
+    nav.toc ol { columns: 1; }
+    h2.sec { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="kicker">DIY Hardware · Build Guide</div>
+    <h1>Build Your Own Minimalist&nbsp;AI Note Device</h1>
+
+    <!-- Little e-ink recorder sketch -->
+    <svg class="device" viewBox="0 0 160 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="14" y="6" width="132" height="208" rx="20" fill="#fbf9f3" stroke="#1c1a17" stroke-width="3"/>
+      <rect x="30" y="24" width="100" height="100" rx="6" fill="#ece7dc" stroke="#1c1a17" stroke-width="2"/>
+      <line x1="42" y1="46" x2="118" y2="46" stroke="#8a8478" stroke-width="3" stroke-linecap="round"/>
+      <line x1="42" y1="62" x2="104" y2="62" stroke="#b5402c" stroke-width="3" stroke-linecap="round"/>
+      <line x1="42" y1="78" x2="118" y2="78" stroke="#8a8478" stroke-width="3" stroke-linecap="round"/>
+      <line x1="42" y1="94" x2="86" y2="94" stroke="#8a8478" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="56" cy="160" r="15" fill="#f0e3df" stroke="#1c1a17" stroke-width="2.5"/>
+      <circle cx="56" cy="160" r="5" fill="#b5402c"/>
+      <rect x="86" y="148" width="38" height="24" rx="12" fill="#f4f1ea" stroke="#1c1a17" stroke-width="2.5"/>
+      <circle cx="80" cy="196" r="3" fill="#8a8478"/>
+      <circle cx="80" cy="14" r="3" fill="#8a8478"/>
+    </svg>
+
+    <p class="dek">A pocket-sized e-ink voice recorder that captures a thought the instant you have it — then quietly transcribes it with AI while you get on with your day.</p>
+    <p class="byline">
+      Inspired by <strong>Paul Lagier's "Pala Note"</strong> ·
+      <a href="https://www.youtube.com/watch?v=3t0k7E7WiOQ" target="_blank" rel="noopener">Watch the original build →</a>
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Table of contents">
+    <h2>What's inside</h2>
+    <ol>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#bom">Parts &amp; cost</a></li>
+      <li><a href="#tools">Tools you'll need</a></li>
+      <li><a href="#shortcut">The shortcut: buy the files</a></li>
+      <li><a href="#assembly">Assembly, step by step</a></li>
+      <li><a href="#firmware">Flashing the firmware</a></li>
+      <li><a href="#whisper">Wiring up Whisper (AI)</a></li>
+      <li><a href="#case">The 3D-printed case</a></li>
+      <li><a href="#diy">Going fully DIY</a></li>
+      <li><a href="#links">Every link in one place</a></li>
+    </ol>
+  </nav>
+
+  <section id="how">
+    <h2 class="sec"><span class="num">01</span> How it works</h2>
+    <div class="sec-rule"></div>
+    <p class="lead">The whole idea is friction-free capture. You press a button, speak your thought, and let go. That's the entire interaction.</p>
+    <p>Under the hood, the device is built around a single, clever board: the <strong>Waveshare ESP32-S3 1.54" e-Paper development board</strong>. The flow looks like this:</p>
+    <ul class="tight">
+      <li><strong>Capture</strong> — Holding the record button writes your voice to a <code>.wav</code> file on a microSD card. No internet needed in the moment.</li>
+      <li><strong>Wait</strong> — The e-ink display shows your notes and stays lit with <em>zero</em> power draw. E-ink only uses energy when the image changes, which is why the battery lasts so long.</li>
+      <li><strong>Sync</strong> — On a schedule (or when you press sync), the device connects to Wi-Fi and uploads recordings to <strong>OpenAI's Whisper API</strong>.</li>
+      <li><strong>Transcribe</strong> — Whisper returns clean text, which is saved back to the SD card as <code>.txt</code> and shown on the screen.</li>
+      <li><strong>Review</strong> — A tiny web dashboard served by the device itself lets you read and organize notes from your phone or laptop.</li>
+    </ul>
+    <div class="note">
+      <span class="label">Why not transcribe on-device?</span>
+      The ESP32-S3 doesn't have the horsepower to run speech-to-text locally. Offloading to Whisper keeps the device cheap, tiny, and power-efficient — at the cost of needing Wi-Fi and an OpenAI API key.
+    </div>
+  </section>
+
+  <section id="bom">
+    <h2 class="sec"><span class="num">02</span> Parts &amp; cost</h2>
+    <div class="sec-rule"></div>
+    <p>The beauty of this project is that one board does almost everything — microcontroller, e-ink display, audio codec, Wi-Fi, and SD slot are all integrated.</p>
+
+    <table class="bom">
+      <thead>
+        <tr><th>Part</th><th>What it does</th><th class="price">Approx.</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="item">Waveshare ESP32-S3 1.54" e-Paper Dev Board<div class="sub">model: ESP32-S3-ePaper-1.54</div></td>
+          <td>The brain + screen. ESP32-S3 MCU, 200×200 e-ink panel, Wi-Fi/BLE, audio codec, microSD slot, buttons.</td>
+          <td class="price">~$25</td>
+        </tr>
+        <tr>
+          <td class="item">500 mAh LiPo battery<div class="sub">1-cell, JST/MX1.25 connector</div></td>
+          <td>Makes it portable and offline. Charged over the board's USB-C.</td>
+          <td class="price">~$5</td>
+        </tr>
+        <tr>
+          <td class="item">microSD card<div class="sub">8–32 GB, any decent brand</div></td>
+          <td>Stores recordings (<code>.wav</code>) and transcripts (<code>.txt</code>).</td>
+          <td class="price">~$5</td>
+        </tr>
+        <tr>
+          <td class="item">Small speaker<div class="sub">MX1.25 2-pin, if not bundled</div></td>
+          <td>Audio feedback &amp; playback. Connects to the board's speaker header.</td>
+          <td class="price">~$2</td>
+        </tr>
+        <tr>
+          <td class="item">3D-printed case<div class="sub">snap-together, no screws</div></td>
+          <td>Holds everything together. Print yourself or use a service.</td>
+          <td class="price">~$3 filament</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="cost">
+      <div class="chip"><div class="big">~$30</div><div class="lbl">Hardware total</div></div>
+      <div class="chip"><div class="big">$6.50</div><div class="lbl">Design + firmware files</div></div>
+      <div class="chip"><div class="big">pay-per-use</div><div class="lbl">Whisper API</div></div>
+    </div>
+
+    <div class="note">
+      <span class="label">Heads up on the microphone</span>
+      The standard <em>ESP32-S3-ePaper-1.54</em> ships with an audio codec but some revisions don't include an onboard mic. Double-check the current spec on the <a href="https://www.waveshare.com/esp32-s3-epaper-1.54.htm" target="_blank" rel="noopener">Waveshare product page</a> before buying — if yours lacks a mic, you'll add a tiny I²S MEMS microphone (e.g. INMP441) to the I²S pins.
+    </div>
+  </section>
+
+  <section id="tools">
+    <h2 class="sec"><span class="num">03</span> Tools you'll need</h2>
+    <div class="sec-rule"></div>
+    <ul class="tight">
+      <li>A <strong>USB-C cable</strong> (data, not charge-only) to flash and power the board.</li>
+      <li>A <strong>computer</strong> with the Arduino IDE or PlatformIO/ESP-IDF installed.</li>
+      <li>Access to a <strong>3D printer</strong>, or a print service like Craftcloud / JLCPCB / a local library makerspace.</li>
+      <li>An <strong>OpenAI account</strong> with an API key and a little credit on it.</li>
+      <li>Optional: tweezers and a plastic spudger for tucking the battery in cleanly.</li>
+    </ul>
+  </section>
+
+  <section id="shortcut">
+    <h2 class="sec"><span class="num">04</span> The shortcut: buy the files</h2>
+    <div class="sec-rule"></div>
+    <p>You do <em>not</em> have to reverse-engineer this from scratch. The creator, <strong>Paul Lagier</strong>, sells a complete kit of <strong>3D design files, ready-to-flash firmware, and an assembly guide</strong> for about <strong>$6.50</strong> on Ko-fi. For the price of a coffee, this is by far the fastest path.</p>
+    <div class="links">
+      <a class="linkcard" href="https://ko-fi.com/s/674a1a82e0" target="_blank" rel="noopener">
+        <span class="ico">📦</span>
+        <span class="meta">
+          <span class="t">Pala Note — design files + firmware + guide</span>
+          <span class="u">ko-fi.com/s/674a1a82e0</span>
+        </span>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+    <p class="note"><span class="label">Recommended path</span>Buy the files, follow the included assembly guide, and use the sections below as a companion for the firmware and Whisper setup. Build from scratch (Section 09) only if you want to learn or customize.</p>
+  </section>
+
+  <section id="assembly">
+    <h2 class="sec"><span class="num">05</span> Assembly, step by step</h2>
+    <div class="sec-rule"></div>
+    <ol class="steps">
+      <li>
+        <h3>Test the bare board first</h3>
+        <p>Before any soldering or casing, plug the board into USB-C and confirm it powers on and the e-ink panel refreshes. Flash a "hello world" sketch (see Section 06) so you know the hardware is good.</p>
+      </li>
+      <li>
+        <h3>Format and insert the microSD card</h3>
+        <p>Format the card as <strong>FAT32</strong>, then slot it into the board's microSD reader. This is where every recording and transcript will live.</p>
+      </li>
+      <li>
+        <h3>Connect the speaker</h3>
+        <p>Plug the small speaker into the board's <code>MX1.25</code> speaker header. If your board didn't come with one, this is the cheap add-on from the parts list.</p>
+      </li>
+      <li>
+        <h3>Attach the LiPo battery</h3>
+        <p>Connect the 500 mAh LiPo to the battery connector. <strong>Mind the polarity</strong> — a reversed connector can damage the board. Charging happens automatically over USB-C.</p>
+      </li>
+      <li>
+        <h3>Seat everything in the case</h3>
+        <p>Lay the battery flat, route the speaker wire, and snap the board into the printed case. Lagier's design clicks together with <strong>no screws</strong>. Make sure the buttons line up with their cutouts.</p>
+      </li>
+      <li>
+        <h3>First boot</h3>
+        <p>Power on. You should see the dashboard/idle screen on the e-ink panel. Press record, speak, release — a <code>.wav</code> file should appear on the SD card.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="firmware">
+    <h2 class="sec"><span class="num">06</span> Flashing the firmware</h2>
+    <div class="sec-rule"></div>
+    <p>If you bought the files, you'll be flashing Lagier's prebuilt firmware — just point your flasher at the board and go. If you're rolling your own, set up your toolchain for the ESP32-S3.</p>
+
+    <p><strong>Using the Arduino IDE:</strong></p>
+    <ul class="tight">
+      <li>Install the <strong>ESP32 board package</strong> from Espressif via Boards Manager.</li>
+      <li>Select <strong>"ESP32S3 Dev Module"</strong> as your board.</li>
+      <li>Enable <strong>PSRAM</strong> and set Flash size to match your board.</li>
+      <li>Add libraries for the e-ink panel (Waveshare's GxEPD2-style driver), <code>SD</code>, <code>WiFi</code>, and an I²S audio library.</li>
+    </ul>
+
+    <p>The Waveshare wiki has board-specific demo code and pin maps — start there so the display and audio pins are correct:</p>
+    <div class="links">
+      <a class="linkcard" href="https://www.waveshare.com/wiki/ESP32-S3-ePaper-1.54" target="_blank" rel="noopener">
+        <span class="ico">📖</span>
+        <span class="meta">
+          <span class="t">Waveshare wiki — ESP32-S3-ePaper-1.54 demos &amp; pinout</span>
+          <span class="u">waveshare.com/wiki/ESP32-S3-ePaper-1.54</span>
+        </span>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+    <p>Flash, then open the serial monitor at <code>115200</code> baud to watch it boot and connect to Wi-Fi.</p>
+  </section>
+
+  <section id="whisper">
+    <h2 class="sec"><span class="num">07</span> Wiring up Whisper (the AI part)</h2>
+    <div class="sec-rule"></div>
+    <p>This is what makes it an "AI" note device. The board records audio locally, then ships it to <strong>OpenAI's Whisper</strong> speech-to-text model for transcription.</p>
+
+    <ol class="steps">
+      <li>
+        <h3>Get an OpenAI API key</h3>
+        <p>Create a key at the <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">OpenAI API keys page</a> and add a few dollars of credit. Whisper is billed per minute of audio and is very cheap for personal use.</p>
+      </li>
+      <li>
+        <h3>Put your key and Wi-Fi in the config</h3>
+        <p>In the firmware's config (or a <code>config.h</code> / settings file on the SD card), set your Wi-Fi SSID, password, and the API key. <strong>Never share your key publicly.</strong></p>
+      </li>
+      <li>
+        <h3>Understand the upload call</h3>
+        <p>On sync, the device POSTs each <code>.wav</code> file as multipart form data to the transcription endpoint and gets back text. The shape of the request:</p>
+      </li>
+    </ol>
+
+<pre><code>POST https://api.openai.com/v1/audio/transcriptions
+Authorization: Bearer YOUR_API_KEY
+Content-Type: multipart/form-data
+
+file=@note_0007.wav
+model=whisper-1
+response_format=text</code></pre>
+
+    <p>The returned text gets written next to the recording as <code>note_0007.txt</code> and rendered on the e-ink screen. See the official guide for parameters and limits:</p>
+    <div class="links">
+      <a class="linkcard" href="https://platform.openai.com/docs/guides/speech-to-text" target="_blank" rel="noopener">
+        <span class="ico">🗣️</span>
+        <span class="meta">
+          <span class="t">OpenAI — Speech-to-Text (Whisper) guide</span>
+          <span class="u">platform.openai.com/docs/guides/speech-to-text</span>
+        </span>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+    <div class="note">
+      <span class="label">Privacy note</span>
+      Audio leaves the device and is sent to OpenAI for transcription. If that matters to you, consider a self-hosted Whisper server (e.g. <code>whisper.cpp</code> on a home machine) and point the device at that endpoint instead.
+    </div>
+  </section>
+
+  <section id="case">
+    <h2 class="sec"><span class="num">08</span> The 3D-printed case</h2>
+    <div class="sec-rule"></div>
+    <p>The case is what turns a dev board into something you'd actually carry. Lagier's design is a <strong>snap-together, screwless</strong> enclosure included in the Ko-fi bundle.</p>
+    <ul class="tight">
+      <li>Print in <strong>PLA or PETG</strong> at 0.2 mm layer height — no supports if oriented correctly.</li>
+      <li>Leave room for the battery to sit flat behind the board.</li>
+      <li>Test-fit the buttons before final assembly; tweak tolerances if your printer runs tight.</li>
+      <li>No printer? Upload the STL to a print-on-demand service or a local makerspace.</li>
+    </ul>
+  </section>
+
+  <section id="diy">
+    <h2 class="sec"><span class="num">09</span> Going fully DIY (the harder path)</h2>
+    <div class="sec-rule"></div>
+    <p>Want to build the firmware yourself instead of buying it? Here's the architecture to recreate:</p>
+    <ul class="tight">
+      <li><strong>Audio capture:</strong> read the I²S microphone into a buffer while the record button is held; write a WAV header + PCM samples to the SD card.</li>
+      <li><strong>Display:</strong> drive the e-ink panel only on state changes — idle screen, "recording…", note list, transcript view.</li>
+      <li><strong>Storage:</strong> use the <code>SD</code> library with incrementing filenames so notes never overwrite each other.</li>
+      <li><strong>Sync:</strong> a Wi-Fi task that walks the SD card for untranscribed <code>.wav</code> files, uploads each to Whisper, and writes back the <code>.txt</code>.</li>
+      <li><strong>Dashboard:</strong> run a small <code>WebServer</code> on the ESP32 that lists notes from the SD card so you can read them in a browser on the same network.</li>
+      <li><strong>Power:</strong> use deep-sleep between interactions; wake on the button GPIO. This is the key to multi-day battery life.</li>
+    </ul>
+    <p>Honestly, for $6.50 the prebuilt firmware saves a lot of evenings — but rebuilding it is a fantastic way to learn ESP32, I²S audio, and e-ink.</p>
+  </section>
+
+  <section id="links">
+    <h2 class="sec"><span class="num">10</span> Every link in one place</h2>
+    <div class="sec-rule"></div>
+    <div class="links">
+      <a class="linkcard" href="https://www.youtube.com/watch?v=3t0k7E7WiOQ" target="_blank" rel="noopener">
+        <span class="ico">▶️</span>
+        <span class="meta"><span class="t">Original video — "I Built a Minimalist AI Note Device"</span><span class="u">youtube.com/watch?v=3t0k7E7WiOQ</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://ko-fi.com/s/674a1a82e0" target="_blank" rel="noopener">
+        <span class="ico">📦</span>
+        <span class="meta"><span class="t">Pala Note files — 3D models, firmware, assembly guide (~$6.50)</span><span class="u">ko-fi.com/s/674a1a82e0</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://www.waveshare.com/esp32-s3-epaper-1.54.htm" target="_blank" rel="noopener">
+        <span class="ico">🔌</span>
+        <span class="meta"><span class="t">Waveshare ESP32-S3 1.54" e-Paper board — buy</span><span class="u">waveshare.com/esp32-s3-epaper-1.54.htm</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://www.waveshare.com/wiki/ESP32-S3-ePaper-1.54" target="_blank" rel="noopener">
+        <span class="ico">📖</span>
+        <span class="meta"><span class="t">Waveshare wiki — demos, pinout, datasheets</span><span class="u">waveshare.com/wiki/ESP32-S3-ePaper-1.54</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://docs.waveshare.com/ESP32-S3-ePaper-1.54" target="_blank" rel="noopener">
+        <span class="ico">📚</span>
+        <span class="meta"><span class="t">Waveshare documentation platform — same board</span><span class="u">docs.waveshare.com/ESP32-S3-ePaper-1.54</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://platform.openai.com/docs/guides/speech-to-text" target="_blank" rel="noopener">
+        <span class="ico">🗣️</span>
+        <span class="meta"><span class="t">OpenAI Whisper — Speech-to-Text guide</span><span class="u">platform.openai.com/docs/guides/speech-to-text</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">
+        <span class="ico">🔑</span>
+        <span class="meta"><span class="t">OpenAI — create your API key</span><span class="u">platform.openai.com/api-keys</span></span>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="linkcard" href="https://www.hackster.io/news/this-beautiful-e-ink-voice-recorder-is-purpose-built-for-creative-minds-3e1a79ecb78a" target="_blank" rel="noopener">
+        <span class="ico">📰</span>
+        <span class="meta"><span class="t">Hackster.io — write-up on the Pala Note</span><span class="u">hackster.io/news/…purpose-built-for-creative-minds</span></span>
+        <span class="arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <p>Build guide compiled from the original video by Paul Lagier and public documentation.</p>
+    <p>Verify the current board spec and firmware terms before purchasing · Mind LiPo polarity · Keep your API key private.</p>
+  </footer>
+
+</div>
+</body>
+</html>
