@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLX Field Guide — Local AI on Apple Silicon</title>
+<meta name="description" content="A hands-on field guide to running machine learning and local agentic AI on your Mac with Apple's MLX framework.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0a08;
+    --bg-2:#100e0a;
+    --surface:#15130d;
+    --surface-2:#1d1a12;
+    --border:rgba(255,200,120,.12);
+    --border-strong:rgba(255,200,120,.26);
+    --text:#f4efe4;
+    --muted:#a89c84;
+    --faint:#6f6755;
+    --accent:#ffb43d;
+    --accent-bright:#ffd584;
+    --warn:#ff7a59;
+    --grid:rgba(255,180,60,.045);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --body:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --disp:'Bricolage Grotesque','Hanken Grotesk',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .bg-layer{position:fixed;inset:0;z-index:-2;pointer-events:none}
+  .bg-grid{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+  }
+  .bg-glow{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(700px 420px at 75% -5%,rgba(255,180,61,.16),transparent 70%),
+      radial-gradient(620px 500px at 8% 8%,rgba(255,120,89,.07),transparent 65%);
+  }
+  .bg-noise{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(16px,4vw,40px);
+    background:rgba(11,10,8,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .brand .mark{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    background:conic-gradient(from 210deg,var(--accent),var(--warn),var(--accent-bright),var(--accent));
+    display:grid;place-items:center;color:#1a1407;font-weight:800;font-family:var(--disp);
+    box-shadow:0 0 22px rgba(255,180,61,.35);
+  }
+  .brand b{color:var(--text);font-weight:700}
+  .brand span{color:var(--muted)}
+  .topbar nav{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px}
+  .topbar nav a{color:var(--muted);text-decoration:none;transition:color .2s}
+  .topbar nav a:hover{color:var(--accent)}
+  @media(max-width:780px){.topbar nav{display:none}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+  @media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+  aside.toc{
+    position:sticky;top:96px;align-self:start;
+    font-family:var(--mono);font-size:12.5px;
+    padding-top:8px;
+  }
+  aside.toc .lbl{color:var(--faint);letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;margin-bottom:14px}
+  aside.toc a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--muted);text-decoration:none;padding:6px 0;
+    border-left:2px solid transparent;padding-left:14px;margin-left:-2px;
+    transition:color .2s,border-color .2s;
+  }
+  aside.toc a .num{color:var(--faint);font-size:10.5px;min-width:18px}
+  aside.toc a:hover{color:var(--text)}
+  aside.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+  aside.toc a.active .num{color:var(--accent)}
+  @media(max-width:920px){aside.toc{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:130px 0 56px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:6px 14px;margin-bottom:26px;
+    background:rgba(255,180,61,.06);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  h1.hero-title{
+    font-family:var(--disp);
+    font-weight:800;
+    font-size:clamp(2.7rem,8.2vw,6.4rem);
+    line-height:.96;letter-spacing:-.025em;
+    margin-bottom:22px;
+  }
+  h1.hero-title .glow{
+    color:var(--accent);
+    text-shadow:0 0 38px rgba(255,180,61,.45);
+    font-style:italic;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2.3vw,1.35rem);
+    color:var(--muted);max-width:620px;margin-bottom:36px;
+  }
+  .hero-sub b{color:var(--text);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:linear-gradient(180deg,#0e0c08,#120f0a);
+    border:1px solid var(--border-strong);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,180,61,.04) inset;
+    max-width:680px;
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(255,180,61,.03)}
+  .term-bar .dots{display:flex;gap:7px}
+  .term-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .term-bar .dots i:nth-child(1){background:#ff5f56}
+  .term-bar .dots i:nth-child(2){background:#ffbd2e}
+  .term-bar .dots i:nth-child(3){background:#27c93f}
+  .term-bar .ttl{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+  .term-body{padding:20px 20px 24px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:188px}
+  .term-body .ln{white-space:pre-wrap;word-break:break-word}
+  .term-body .pr{color:var(--accent)}
+  .term-body .cmd{color:var(--text)}
+  .term-body .out{color:var(--muted)}
+  .term-body .ok{color:#7ee08a}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .stat{
+    border:1px solid var(--border);border-radius:12px;padding:16px 20px;
+    background:var(--surface);min-width:148px;flex:1;
+  }
+  .stat .k{font-family:var(--disp);font-weight:800;font-size:1.85rem;color:var(--accent);line-height:1}
+  .stat .v{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+  /* ---------- sections ---------- */
+  section.block{padding:54px 0;border-top:1px solid var(--border);scroll-margin-top:88px}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:8px}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+  h3{font-family:var(--disp);font-weight:600;font-size:1.25rem;margin:30px 0 12px;letter-spacing:-.01em}
+  p{color:#d8d0c0;margin:14px 0;max-width:66ch}
+  p.lead{color:var(--muted);font-size:1.08rem}
+  a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+  a.inline:hover{border-color:var(--accent)}
+  strong{color:var(--text)}
+  ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:#d8d0c0;max-width:66ch}
+  li{margin:7px 0}
+  li::marker{color:var(--accent)}
+  code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;color:var(--accent-bright)}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    position:relative;margin:20px 0;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;background:#0d0b07;
+  }
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:rgba(255,180,61,.03);
+    font-family:var(--mono);font-size:11px;color:var(--faint);
+  }
+  .code-head .tag{display:flex;align-items:center;gap:8px}
+  .code-head .tag b{color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .copy{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--border);
+    padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .18s;
+  }
+  .copy:hover{color:var(--accent);border-color:var(--border-strong)}
+  .copy.done{color:#7ee08a;border-color:rgba(126,224,138,.4)}
+  pre{padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+  pre code{color:#e6ddca;white-space:pre}
+  .tok-c{color:var(--faint);font-style:italic}      /* comment */
+  .tok-k{color:var(--accent)}                         /* keyword/cmd */
+  .tok-s{color:#9fe6a0}                               /* string */
+  .tok-f{color:var(--accent-bright)}                  /* func/flag */
+  .tok-n{color:#e6b3ff}                               /* number */
+  .tok-p{color:var(--muted)}                          /* punctuation/prompt */
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;
+    border-radius:12px;border:1px solid var(--border);background:var(--surface);
+    border-left:3px solid var(--accent);
+  }
+  .callout.warn{border-left-color:var(--warn)}
+  .callout .ico{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none;font-size:13px;padding-top:2px}
+  .callout.warn .ico{color:var(--warn)}
+  .callout p{margin:0;color:#d8d0c0;font-size:.96rem;max-width:none}
+  .callout b{color:var(--text)}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(255,180,61,.04)}
+  td{color:#d8d0c0}
+  td:first-child{font-family:var(--mono);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(255,180,61,.03)}
+
+  /* ---------- steps grid ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .card{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card .ix{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px}
+  .card h4{font-family:var(--disp);font-weight:600;font-size:1.12rem;margin-bottom:8px}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:48px 0 70px;margin-top:30px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+  footer h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  footer a{display:block;color:var(--muted);text-decoration:none;font-size:.94rem;padding:5px 0;transition:color .2s}
+  footer a:hover{color:var(--accent)}
+  .foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:36px;line-height:1.7;max-width:560px}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .rv{animation:none;opacity:1;transform:none}
+    .cursor,.eyebrow .dot{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">M</span><span>mlx&nbsp;//&nbsp;</span><b>field guide</b></div>
+  <nav>
+    <a href="#install">install</a>
+    <a href="#llm">run an llm</a>
+    <a href="#agent">build an agent</a>
+    <a href="#models">models</a>
+    <a href="#help">troubleshoot</a>
+  </nav>
+</header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow rv"><span class="dot"></span> Apple Silicon · M-series · Local-first AI</div>
+  <h1 class="hero-title rv" style="animation-delay:.05s">Run AI on your<br>Mac with <span class="glow">MLX</span>.</h1>
+  <p class="hero-sub rv" style="animation-delay:.12s">A hands-on field guide to <b>MLX</b> — Apple's array framework built for Apple Silicon. Go from a fresh terminal to running large language models and a <b>local agentic AI</b> loop, entirely on your own machine. No cloud, no API keys.</p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <span class="ttl">zsh — ~/mlx</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="k">M1+</div><div class="v">// any apple silicon</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="k">1 cmd</div><div class="v">// pip install mlx-lm</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="k">0</div><div class="v">// gpu config needed</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="k">100%</div><div class="v">// runs offline</div></div>
+  </div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="shell">
+
+  <aside class="toc">
+    <div class="lbl">Contents</div>
+    <a href="#why"><span class="num">01</span> Why MLX</a>
+    <a href="#check"><span class="num">02</span> Check your Mac</a>
+    <a href="#install"><span class="num">03</span> Install</a>
+    <a href="#hello"><span class="num">04</span> Hello, MLX</a>
+    <a href="#llm"><span class="num">05</span> Run an LLM</a>
+    <a href="#python"><span class="num">06</span> Python API</a>
+    <a href="#server"><span class="num">07</span> Serve it</a>
+    <a href="#agent"><span class="num">08</span> Build an agent</a>
+    <a href="#tune"><span class="num">09</span> Fine-tune (LoRA)</a>
+    <a href="#models"><span class="num">10</span> Pick a model</a>
+    <a href="#help"><span class="num">11</span> Troubleshoot</a>
+    <a href="#next"><span class="num">12</span> Next steps</a>
+  </aside>
+
+  <main>
+
+  <!-- 01 -->
+  <section class="block" id="why">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Why MLX is fast on a Mac</h2></div>
+    <p class="lead">MLX is an open-source array framework from Apple, designed from the ground up for Apple Silicon. If you've used NumPy or PyTorch, the API will feel familiar — the difference is what runs underneath.</p>
+    <p>The key trick is <strong>unified memory</strong>. On an M-series chip, the CPU and GPU share one pool of RAM. MLX arrays live in that shared memory, so operations can run on the CPU or GPU <em>without ever copying data between them</em>. That's why a MacBook can comfortably run models that would normally demand a discrete GPU.</p>
+    <ul>
+      <li><strong>Lazy &amp; composable</strong> — computation is only run when you need the result, which lets MLX fuse and optimize operations.</li>
+      <li><strong>Familiar API</strong> — <code class="ic">mlx.core</code> mirrors NumPy; <code class="ic">mlx.nn</code> mirrors PyTorch.</li>
+      <li><strong>Multi-language</strong> — first-class Python, plus Swift, C++ and C bindings for native macOS / iOS apps.</li>
+      <li><strong>Built for local agents</strong> — fast enough to run a tool-calling LLM loop in real time on your own hardware.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>This guide companions Apple's WWDC26 session <b>"Run local agentic AI on the Mac using MLX."</b> We'll build up to exactly that — a working local agent — one command at a time.</p></div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="check">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Check your Mac is ready</h2></div>
+    <p>MLX requires <strong>Apple Silicon</strong> (M1, M2, M3, M4 or later). It will not use the GPU on an Intel Mac. Confirm your chip and architecture first:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># What chip am I on?</span>
+<span class="tok-k">sysctl</span> <span class="tok-f">-n</span> machdep.cpu.brand_string
+<span class="tok-c"># → "Apple M3 Pro"  ✅</span>
+
+<span class="tok-c"># Architecture must be arm64 (not x86_64)</span>
+<span class="tok-k">uname</span> <span class="tok-f">-m</span>
+<span class="tok-c"># → arm64  ✅</span></code></pre>
+    </div>
+    <p>You'll also want a recent Python. macOS ships with one, but a clean install you control is better:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># Recommended: install Python via Homebrew</span>
+<span class="tok-k">brew</span> install python   <span class="tok-c"># needs Homebrew → brew.sh</span>
+<span class="tok-k">python3</span> <span class="tok-f">--version</span>     <span class="tok-c"># Python 3.9+ (3.11+ ideal)</span></code></pre>
+    </div>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Use native arm64 Python.</b> If you installed Python through Rosetta (x86), MLX won't engage the GPU. <code class="ic">python3 -c "import platform; print(platform.machine())"</code> must print <b>arm64</b>.</p></div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="install">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Install MLX</h2></div>
+    <p>Always work inside a <strong>virtual environment</strong> so MLX and its model dependencies stay isolated from system Python.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># 1 — make a project + virtual environment</span>
+<span class="tok-k">mkdir</span> mlx-lab <span class="tok-p">&amp;&amp;</span> <span class="tok-k">cd</span> mlx-lab
+<span class="tok-k">python3</span> <span class="tok-f">-m</span> venv .venv
+<span class="tok-k">source</span> .venv/bin/activate
+
+<span class="tok-c"># 2 — install the core framework</span>
+<span class="tok-k">pip</span> install mlx
+
+<span class="tok-c"># 3 — install the LLM toolkit (this is what you'll use most)</span>
+<span class="tok-k">pip</span> install mlx-lm</code></pre>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="ix">pkg / mlx</div><h4>The core</h4><p>Arrays, autograd, neural-net layers. The NumPy/PyTorch-style foundation.</p></div>
+      <div class="card"><div class="ix">pkg / mlx-lm</div><h4>Language models</h4><p>Load, generate, chat, serve and fine-tune LLMs from Hugging Face in a few lines.</p></div>
+      <div class="card"><div class="ix">pkg / mlx-vlm</div><h4>Vision + language</h4><p>Optional. Run multimodal models that take images alongside text.</p></div>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>Prefer Conda? <code class="ic">conda install -c conda-forge mlx</code> works too. Either way, the rest of this guide is identical.</p></div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="hello">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Hello, MLX — a 10-second sanity check</h2></div>
+    <p>Before touching any models, confirm MLX is alive and using the GPU. Create <code class="ic">hello.py</code>:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">py<b>hello.py</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> mlx.core <span class="tok-k">as</span> mx
+
+<span class="tok-c"># arrays live in unified memory — no device juggling</span>
+a <span class="tok-p">=</span> mx.array([<span class="tok-n">1</span>, <span class="tok-n">2</span>, <span class="tok-n">3</span>])
+b <span class="tok-p">=</span> mx.array([<span class="tok-n">4</span>, <span class="tok-n">5</span>, <span class="tok-n">6</span>])
+
+<span class="tok-k">print</span>(<span class="tok-s">"sum  :"</span>, a <span class="tok-p">+</span> b)
+<span class="tok-k">print</span>(<span class="tok-s">"dot  :"</span>, mx.sum(a <span class="tok-p">*</span> b))
+<span class="tok-k">print</span>(<span class="tok-s">"gpu  :"</span>, mx.default_device())   <span class="tok-c"># → Device(gpu, 0)</span></code></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">python</span> hello.py
+<span class="tok-c"># sum  : array([5, 7, 9], dtype=int32)</span>
+<span class="tok-c"># dot  : array(32, dtype=int32)</span>
+<span class="tok-c"># gpu  : Device(gpu, 0)   ✅ you're running on the GPU</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="llm">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Run a real LLM from the terminal</h2></div>
+    <p class="lead">No code required. The <code class="ic">mlx-lm</code> package ships command-line tools that download a model from Hugging Face and run it locally. The <code class="ic">mlx-community</code> org hosts hundreds of ready-to-run, pre-quantized models.</p>
+    <h3>One-shot generation</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">mlx_lm.generate</span> <span class="tok-f">\</span>
+  <span class="tok-f">--model</span> mlx-community/Llama-3.2-3B-Instruct-4bit <span class="tok-f">\</span>
+  <span class="tok-f">--prompt</span> <span class="tok-s">"Explain unified memory in one sentence."</span> <span class="tok-f">\</span>
+  <span class="tok-f">--max-tokens</span> <span class="tok-n">200</span></code></pre>
+    </div>
+    <p>The first run downloads the model (a few GB) into your Hugging Face cache; subsequent runs are instant and fully offline.</p>
+    <h3>Interactive chat</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">mlx_lm.chat</span> <span class="tok-f">--model</span> mlx-community/Llama-3.2-3B-Instruct-4bit
+<span class="tok-c"># type messages, get replies, conversation history is kept</span>
+<span class="tok-c"># ctrl-C / "exit" to quit</span></code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>The <code class="ic">-4bit</code> suffix means the model is quantized to 4-bit weights — roughly a quarter of the memory, with minimal quality loss. Start small (3B), then scale up once you know it works.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="python">
+    <div class="sec-head"><span class="sec-num">06</span><h2>The Python API</h2></div>
+    <p>Two functions cover almost everything: <code class="ic">load()</code> and <code class="ic">generate()</code>.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">py<b>chat.py</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">from</span> mlx_lm <span class="tok-k">import</span> load, generate
+
+model, tokenizer <span class="tok-p">=</span> load(<span class="tok-s">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span>)
+
+<span class="tok-c"># apply the model's chat template for proper formatting</span>
+messages <span class="tok-p">=</span> [{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"Write a haiku about Apple Silicon."</span>}]
+prompt <span class="tok-p">=</span> tokenizer.apply_chat_template(
+    messages, add_generation_prompt<span class="tok-p">=</span><span class="tok-k">True</span>
+)
+
+text <span class="tok-p">=</span> generate(
+    model, tokenizer,
+    prompt<span class="tok-p">=</span>prompt,
+    max_tokens<span class="tok-p">=</span><span class="tok-n">256</span>,
+    verbose<span class="tok-p">=</span><span class="tok-k">True</span>,   <span class="tok-c"># streams tokens + prints speed</span>
+)</code></pre>
+    </div>
+    <h3>Streaming tokens yourself</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">py<b>stream.py</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">from</span> mlx_lm <span class="tok-k">import</span> load, stream_generate
+
+model, tokenizer <span class="tok-p">=</span> load(<span class="tok-s">"mlx-community/Llama-3.2-3B-Instruct-4bit"</span>)
+prompt <span class="tok-p">=</span> tokenizer.apply_chat_template(
+    [{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"Count to five."</span>}],
+    add_generation_prompt<span class="tok-p">=</span><span class="tok-k">True</span>,
+)
+
+<span class="tok-k">for</span> chunk <span class="tok-k">in</span> stream_generate(model, tokenizer, prompt, max_tokens<span class="tok-p">=</span><span class="tok-n">128</span>):
+    <span class="tok-k">print</span>(chunk.text, end<span class="tok-p">=</span><span class="tok-s">""</span>, flush<span class="tok-p">=</span><span class="tok-k">True</span>)</code></pre>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="block" id="server">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Serve it like the OpenAI API</h2></div>
+    <p class="lead">This is the bridge to agentic apps. <code class="ic">mlx-lm</code> can expose your local model behind an <strong>OpenAI-compatible HTTP server</strong> — so any tool or SDK that speaks the OpenAI protocol can point at your Mac instead of the cloud.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">mlx_lm.server</span> <span class="tok-f">--model</span> mlx-community/Llama-3.2-3B-Instruct-4bit
+<span class="tok-c"># serving on http://localhost:8080</span></code></pre>
+    </div>
+    <p>Now talk to it with the standard <code class="ic">openai</code> client — note the local <code class="ic">base_url</code> and a throwaway key:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">py<b>client.py</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">from</span> openai <span class="tok-k">import</span> OpenAI
+
+client <span class="tok-p">=</span> OpenAI(
+    base_url<span class="tok-p">=</span><span class="tok-s">"http://localhost:8080/v1"</span>,
+    api_key<span class="tok-p">=</span><span class="tok-s">"not-needed"</span>,        <span class="tok-c"># local — no auth</span>
+)
+
+resp <span class="tok-p">=</span> client.chat.completions.create(
+    model<span class="tok-p">=</span><span class="tok-s">"local"</span>,
+    messages<span class="tok-p">=</span>[{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"Hello from my Mac!"</span>}],
+)
+<span class="tok-k">print</span>(resp.choices[<span class="tok-n">0</span>].message.content)</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>Because it's OpenAI-compatible, the same server drops into tools like LangChain, LlamaIndex, or your own app — just swap the base URL. Your data never leaves the machine.</p></div>
+  </section>
+
+  <!-- 08 -->
+  <section class="block" id="agent">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Build a local agentic loop</h2></div>
+    <p class="lead">An "agent" is just an LLM that can call your functions (tools), read the results, and decide what to do next. With the local server running, here's a complete tool-calling loop — the heart of the WWDC26 demo, on your hardware.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">py<b>agent.py</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> json
+<span class="tok-k">from</span> openai <span class="tok-k">import</span> OpenAI
+
+client <span class="tok-p">=</span> OpenAI(base_url<span class="tok-p">=</span><span class="tok-s">"http://localhost:8080/v1"</span>, api_key<span class="tok-p">=</span><span class="tok-s">"x"</span>)
+
+<span class="tok-c"># 1 — a real Python function the model is allowed to call</span>
+<span class="tok-k">def</span> <span class="tok-f">get_battery</span>():
+    <span class="tok-k">import</span> subprocess
+    out <span class="tok-p">=</span> subprocess.run([<span class="tok-s">"pmset"</span>, <span class="tok-s">"-g"</span>, <span class="tok-s">"batt"</span>], capture_output<span class="tok-p">=</span><span class="tok-k">True</span>, text<span class="tok-p">=</span><span class="tok-k">True</span>)
+    <span class="tok-k">return</span> out.stdout.strip()
+
+<span class="tok-c"># 2 — describe the tool to the model (JSON schema)</span>
+tools <span class="tok-p">=</span> [{
+    <span class="tok-s">"type"</span>: <span class="tok-s">"function"</span>,
+    <span class="tok-s">"function"</span>: {
+        <span class="tok-s">"name"</span>: <span class="tok-s">"get_battery"</span>,
+        <span class="tok-s">"description"</span>: <span class="tok-s">"Get the Mac's current battery status."</span>,
+        <span class="tok-s">"parameters"</span>: {<span class="tok-s">"type"</span>: <span class="tok-s">"object"</span>, <span class="tok-s">"properties"</span>: {}},
+    },
+}]
+
+messages <span class="tok-p">=</span> [{<span class="tok-s">"role"</span>: <span class="tok-s">"user"</span>, <span class="tok-s">"content"</span>: <span class="tok-s">"What's my battery at?"</span>}]
+
+<span class="tok-c"># 3 — the agent loop: model thinks, maybe calls a tool, we feed results back</span>
+<span class="tok-k">while</span> <span class="tok-k">True</span>:
+    r <span class="tok-p">=</span> client.chat.completions.create(
+        model<span class="tok-p">=</span><span class="tok-s">"local"</span>, messages<span class="tok-p">=</span>messages, tools<span class="tok-p">=</span>tools,
+    )
+    msg <span class="tok-p">=</span> r.choices[<span class="tok-n">0</span>].message
+    messages.append(msg)
+
+    <span class="tok-k">if</span> <span class="tok-k">not</span> msg.tool_calls:
+        <span class="tok-k">print</span>(msg.content)        <span class="tok-c"># final answer → done</span>
+        <span class="tok-k">break</span>
+
+    <span class="tok-k">for</span> call <span class="tok-k">in</span> msg.tool_calls:
+        result <span class="tok-p">=</span> get_battery()       <span class="tok-c"># run the requested tool</span>
+        messages.append({
+            <span class="tok-s">"role"</span>: <span class="tok-s">"tool"</span>,
+            <span class="tok-s">"tool_call_id"</span>: call.id,
+            <span class="tok-s">"content"</span>: result,
+        })</code></pre>
+    </div>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Use a tool-capable model.</b> Function calling needs a model trained for it — Llama 3.x, Qwen 2.5/3, and Mistral instruct variants all work. A base/completion model will ignore the <code class="ic">tools</code> field.</p></div>
+    <p>That's the whole pattern: <strong>prompt → model decides → tool runs → result returns → repeat until done</strong>. Add file access, web search, or shell commands as more tools and you have a genuine local agent — private, free to run, and offline.</p>
+  </section>
+
+  <!-- 09 -->
+  <section class="block" id="tune">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Fine-tune with LoRA</h2></div>
+    <p>Teach a model your own style or domain without retraining the whole thing. MLX has built-in LoRA / QLoRA fine-tuning that runs on the same Mac.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># data/ holds train.jsonl + valid.jsonl (chat-formatted examples)</span>
+<span class="tok-k">mlx_lm.lora</span> <span class="tok-f">\</span>
+  <span class="tok-f">--model</span> mlx-community/Llama-3.2-3B-Instruct-4bit <span class="tok-f">\</span>
+  <span class="tok-f">--train</span> <span class="tok-f">\</span>
+  <span class="tok-f">--data</span> ./data <span class="tok-f">\</span>
+  <span class="tok-f">--iters</span> <span class="tok-n">600</span>
+
+<span class="tok-c"># then generate using your trained adapters</span>
+<span class="tok-k">mlx_lm.generate</span> <span class="tok-f">\</span>
+  <span class="tok-f">--model</span> mlx-community/Llama-3.2-3B-Instruct-4bit <span class="tok-f">\</span>
+  <span class="tok-f">--adapter-path</span> ./adapters <span class="tok-f">\</span>
+  <span class="tok-f">--prompt</span> <span class="tok-s">"..."</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="block" id="models">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Pick a model for your RAM</h2></div>
+    <p class="lead">Because of unified memory, your total RAM is roughly your VRAM budget. Leave headroom for macOS and apps. As a rule of thumb for 4-bit quantized models:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Your RAM</th><th>Comfortable size (4-bit)</th><th>Good starting model</th></tr></thead>
+        <tbody>
+          <tr><td>8 GB</td><td>up to ~3B</td><td>Llama-3.2-3B-Instruct-4bit</td></tr>
+          <tr><td>16 GB</td><td>7B – 8B</td><td>Qwen2.5-7B-Instruct-4bit</td></tr>
+          <tr><td>24–32 GB</td><td>13B – 14B</td><td>Qwen2.5-14B-Instruct-4bit</td></tr>
+          <tr><td>48–64 GB</td><td>30B – 34B</td><td>Mixtral / Qwen-32B-4bit</td></tr>
+          <tr><td>96 GB+</td><td>70B+</td><td>Llama-3.3-70B-Instruct-4bit</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Convert &amp; quantize any Hugging Face model</h3>
+    <p>Want a model that isn't pre-converted? Quantize it yourself:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">mlx_lm.convert</span> <span class="tok-f">\</span>
+  <span class="tok-f">--hf-path</span> meta-llama/Llama-3.2-3B-Instruct <span class="tok-f">\</span>
+  <span class="tok-f">-q</span> <span class="tok-f">--q-bits</span> <span class="tok-n">4</span> <span class="tok-f">\</span>
+  <span class="tok-f">--mlx-path</span> ./my-llama-4bit</code></pre>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="block" id="help">
+    <div class="sec-head"><span class="sec-num">11</span><h2>Troubleshooting</h2></div>
+    <div class="cards">
+      <div class="card"><div class="ix">err / arch</div><h4>GPU not used</h4><p>You're on x86 Python under Rosetta. Reinstall native arm64 Python and recreate the venv.</p></div>
+      <div class="card"><div class="ix">err / oom</div><h4>Out of memory</h4><p>Model too big for your RAM. Drop to a smaller size or a lower bit-width (4-bit, even 3-bit).</p></div>
+      <div class="card"><div class="ix">err / slow</div><h4>First run is slow</h4><p>That's the model download. Later runs use the cached weights and run fully offline.</p></div>
+      <div class="card"><div class="ix">err / 404</div><h4>Model not found</h4><p>Check the exact repo id on Hugging Face. Gated models need <code class="ic">huggingface-cli login</code>.</p></div>
+      <div class="card"><div class="ix">err / cmd</div><h4>mlx_lm not found</h4><p>The venv isn't active. Run <code class="ic">source .venv/bin/activate</code> again in this shell.</p></div>
+      <div class="card"><div class="ix">err / tools</div><h4>Tools ignored</h4><p>Your model can't do function calling. Switch to Llama 3.x, Qwen 2.5/3, or Mistral instruct.</p></div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="block" id="next">
+    <div class="sec-head"><span class="sec-num">12</span><h2>Where to go next</h2></div>
+    <p>You can now run, serve, fine-tune, and build agents on top of local models — all on your Mac. From here:</p>
+    <ul>
+      <li>Add more tools to your agent — file reads, calendar, shell, web fetch.</li>
+      <li>Try <code class="ic">mlx-vlm</code> for image understanding (multimodal agents).</li>
+      <li>Build a native app with the <strong>Swift</strong> bindings (<code class="ic">mlx-swift</code>) to ship MLX inside a macOS / iOS app.</li>
+      <li>Explore <code class="ic">mlx.nn</code> to train your own small models from scratch.</li>
+    </ul>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+<div class="wrap">
+  <div class="foot-grid">
+    <div>
+      <h4>Source video</h4>
+      <a href="https://www.youtube.com/watch?v=wykPErJ8M-8" target="_blank" rel="noopener">WWDC26 — Run local agentic AI on the Mac using MLX ↗</a>
+    </div>
+    <div>
+      <h4>Official MLX</h4>
+      <a href="https://github.com/ml-explore/mlx" target="_blank" rel="noopener">github.com/ml-explore/mlx ↗</a>
+      <a href="https://github.com/ml-explore/mlx-lm" target="_blank" rel="noopener">github.com/ml-explore/mlx-lm ↗</a>
+      <a href="https://ml-explore.github.io/mlx/build/html/index.html" target="_blank" rel="noopener">MLX documentation ↗</a>
+    </div>
+    <div>
+      <h4>Models</h4>
+      <a href="https://huggingface.co/mlx-community" target="_blank" rel="noopener">huggingface.co/mlx-community ↗</a>
+      <a href="https://github.com/ml-explore/mlx-swift" target="_blank" rel="noopener">mlx-swift (native apps) ↗</a>
+    </div>
+  </div>
+  <p class="foot-note">A community field guide — not affiliated with Apple. Commands target MLX / mlx-lm as of 2026; package names and repo ids may evolve, so check the official docs if anything drifts. Everything here runs locally and offline once models are cached.</p>
+</div>
+</footer>
+
+<script>
+/* ---- copy buttons ---- */
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('pre code');
+    navigator.clipboard.writeText(code.innerText.trim()).then(()=>{
+      const t=btn.textContent;btn.textContent='copied ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+/* ---- scroll-spy nav ---- */
+const links=[...document.querySelectorAll('aside.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id); if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section.block').forEach(s=>spy.observe(s));
+
+/* ---- hero terminal typewriter ---- */
+(function(){
+  const el=document.getElementById('term');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines=[
+    {t:'$ ',c:'pip install mlx-lm',cls:'cmd'},
+    {t:'',c:'Successfully installed mlx-lm  ✓',cls:'ok',pre:true},
+    {t:'$ ',c:'mlx_lm.generate --model Llama-3.2-3B-4bit \\',cls:'cmd'},
+    {t:'   ',c:'--prompt "Hello, Mac"',cls:'cmd'},
+    {t:'',c:'Running on Apple Silicon GPU…',cls:'out',pre:true},
+    {t:'',c:'> Hello! Running fully on-device. 🦾',cls:'out',pre:true},
+  ];
+  if(reduce){
+    el.innerHTML=lines.map(l=>`<div class="ln"><span class="pr">${l.t}</span><span class="${l.cls}">${l.c}</span></div>`).join('');
+    return;
+  }
+  let li=0;
+  function nextLine(){
+    if(li>=lines.length){
+      const cur=document.createElement('span');cur.className='cursor';
+      el.lastChild.appendChild(cur);return;
+    }
+    const l=lines[li++];
+    const row=document.createElement('div');row.className='ln';
+    row.innerHTML=`<span class="pr">${l.t}</span><span class="${l.cls}"></span>`;
+    el.appendChild(row);
+    const target=row.querySelector('span:last-child');
+    if(l.pre){ // print instantly (program output)
+      let i=0;const speed=10;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,speed);else setTimeout(nextLine,260);
+      })();
+    }else{
+      let i=0;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,28);else setTimeout(nextLine,360);
+      })();
+    }
+  }
+  nextLine();
+})();
+</script>
+</body>
+</html>
