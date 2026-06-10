@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll &amp; View Transitions — Tailwind (CDN) Demo</title>
+<meta name="description" content="A runnable, single-file demo of scroll-driven, scroll-triggered, scroll-state, and view-transition effects built entirely with the Tailwind Play CDN — no install, no build.">
+
+<!-- ===================================================================
+     TAILWIND — PLAY CDN.  One tag, no npm, no build step.
+     (Great for prototyping/learning; use the CLI build for production.)
+==================================================================== -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: { ink:'#07080e', panel:'#0e1019', edge:'rgba(140,170,255,.14)', accent:'#7c9cff', cyan:'#5fe3d0' },
+        fontFamily: { mono:['ui-monospace','SFMono-Regular','Menlo','monospace'] },
+      }
+    }
+  }
+</script>
+
+<!-- ===================================================================
+     The ONLY hand-written CSS: things utilities can't express —
+     @keyframes, the @container scroll-state() query, and the
+     ::view-transition-* pseudo-elements. Everything else is utilities.
+==================================================================== -->
+<style>
+  @keyframes grow   { from { transform: scaleX(0) } to { transform: scaleX(1) } }
+  @keyframes reveal {
+    from { opacity:0; transform: translateY(40px) scale(.96); filter: blur(6px) }
+    to   { opacity:1; transform: none;                        filter: blur(0) }
+  }
+
+  /* scroll-state query — no utility form, so it lives here */
+  @container scroll-state(stuck: top) {
+    .ss-bar {
+      background: linear-gradient(90deg, #7c9cff, #5fe3d0);
+      color: #0a0c15; letter-spacing: .04em;
+      box-shadow: 0 10px 24px -10px rgba(124,156,255,.8);
+    }
+    .ss-bar .hint::after { content: " → stuck: top ✓" }
+  }
+
+  /* view-transition pseudo-elements — tune the generated animation */
+  ::view-transition-old(vt-hero),
+  ::view-transition-new(vt-hero) {
+    animation-duration: .45s;
+    animation-timing-function: cubic-bezier(.2,.7,.2,1);
+  }
+
+  /* contained scroll-driven scrubber: @property angle + conic ring */
+  @property --sd-deg { syntax:'<angle>'; inherits:false; initial-value:0deg }
+  @keyframes sd-fill { from{ --sd-deg:0deg } to{ --sd-deg:360deg } }
+  @keyframes sd-spin { to{ transform:rotate(360deg) } }
+  .tw-ring{
+    position:relative; width:116px; height:116px; border-radius:9999px;
+    display:grid; place-items:center;
+    background:conic-gradient(#7c9cff var(--sd-deg), rgba(255,255,255,.07) 0);
+    animation:sd-fill linear both; animation-timeline:--sd;
+  }
+  .tw-ring::before{ content:""; position:absolute; inset:11px; border-radius:9999px; background:#07080e }
+  .tw-arrow{ position:relative; animation:sd-spin linear both; animation-timeline:--sd }
+
+  /* scroll-state: snapped slide spotlight (base + queried state, same specificity) */
+  .snap-card{ transform:scale(.9); opacity:.45; transition:transform .3s, opacity .3s, border-color .3s, box-shadow .3s }
+  @container scroll-state(snapped: inline){
+    .snap-card{ transform:scale(1); opacity:1; border-color:#7c9cff; box-shadow:0 14px 32px -16px rgba(124,156,255,.8) }
+  }
+
+  /* view-transition: circular clip-path wipe */
+  .tw-theme-a{ background:linear-gradient(140deg,#0e1330,#16224a); color:#aec4ff }
+  .tw-theme-b{ background:linear-gradient(140deg,#7c9cff,#5fe3d0); color:#06121a }
+  ::view-transition-old(vt-panel){ animation:none }
+  ::view-transition-new(vt-panel){ animation:vt-circle .55s cubic-bezier(.2,.7,.2,1) both }
+  @keyframes vt-circle{
+    from{ clip-path:circle(0% at var(--cx,50%) var(--cy,50%)) }
+    to  { clip-path:circle(150% at var(--cx,50%) var(--cy,50%)) }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *{ animation: none !important }
+  }
+</style>
+</head>
+
+<body class="bg-ink text-slate-100 font-sans antialiased selection:bg-accent/30">
+
+<!-- LIVE scroll-driven progress bar (root scroll). Longhands avoid the
+     `animation` shorthand resetting animation-timeline back to auto. -->
+<div class="fixed top-0 left-0 z-50 h-[3px] w-full origin-left
+            bg-gradient-to-r from-accent to-cyan shadow-[0_0_14px_rgba(124,156,255,.6)]
+            [animation-name:grow] [animation-timing-function:linear] [animation-fill-mode:both]
+            [animation-timeline:scroll(root_block)]"></div>
+
+<!-- ===================== HERO ===================== -->
+<header class="max-w-4xl mx-auto px-6 pt-28 pb-10">
+  <span class="inline-flex items-center gap-2 font-mono text-xs text-accent border border-edge rounded-full px-3 py-1.5 bg-accent/5">
+    <span class="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_10px_#7c9cff]"></span>
+    Built 100% with Tailwind Play CDN — no install
+  </span>
+  <h1 class="mt-6 text-5xl sm:text-6xl font-extrabold tracking-tight leading-[0.97]">
+    Scroll motion,<br><span class="text-accent italic">utility-first.</span>
+  </h1>
+  <p class="mt-5 text-lg text-slate-400 max-w-xl">
+    The same four demos as the main guide — scroll-driven, scroll-triggered, scroll-state, and view transitions —
+    expressed as Tailwind classes via <span class="text-slate-200 font-semibold">arbitrary properties</span>
+    like <code class="font-mono text-cyan text-sm bg-white/5 px-1.5 py-0.5 rounded">[animation-timeline:view()]</code>.
+  </p>
+  <a href="./scroll-animations-guide.html" class="inline-block mt-6 font-mono text-xs text-accent border border-edge rounded-lg px-4 py-2 hover:border-accent/60 transition">← back to the full guide</a>
+</header>
+
+<main class="max-w-4xl mx-auto px-6 pb-24 space-y-16">
+
+  <!-- ===================== 1 · SCROLL-DRIVEN ===================== -->
+  <section>
+    <h2 class="font-mono text-sm text-accent">01 — scroll-driven · <span class="text-slate-500">animation-timeline: view()</span></h2>
+    <p class="mt-2 text-slate-400 text-sm">Each card scrubs its own reveal based on its position in the viewport. Scroll up and they un-reveal — the signature of scroll-<em class="text-accent not-italic">driven</em>.</p>
+
+    <!-- contained scrubber: named timeline exposed via [timeline-scope:--sd] -->
+    <div class="mt-5 grid sm:grid-cols-[1fr_132px] gap-4 items-center [timeline-scope:--sd]">
+      <div class="h-48 overflow-y-auto rounded-xl border border-edge bg-ink p-4 font-mono text-xs leading-loose text-slate-500 [scroll-timeline:--sd_block]">
+        ↓ scroll this panel — the ring is driven by <b class="text-slate-300">this box’s</b> scroll via a named <b class="text-slate-300">scroll-timeline</b>.<br><br>⌁ ⌁ ⌁ ⌁ ⌁<br><br>halfway…<br><br>⌁ ⌁ ⌁ ⌁ ⌁<br><br>keep going…<br><br>⌁ ⌁ ⌁ ⌁ ⌁<br><br><b class="text-cyan">100% — ring full ✓</b>
+      </div>
+      <div class="tw-ring justify-self-center"><span class="tw-arrow text-2xl text-accent">↑</span></div>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">progress bar + named scroll-timeline · html / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- the top progress bar — driven by the page (root) scroller --&gt;</span>
+&lt;div class="fixed top-0 left-0 h-[3px] w-full origin-left
+            [animation-name:grow] [animation-timing-function:linear]
+            [animation-fill-mode:both] <span class="text-cyan">[animation-timeline:scroll(root_block)]</span>"&gt;&lt;/div&gt;
+
+<span class="text-slate-500 italic">&lt;!-- the ring — driven by a NAMED timeline coming from the box's own scroll --&gt;</span>
+&lt;div class="grid … <span class="text-cyan">[timeline-scope:--sd]</span>"&gt;                  <span class="text-slate-500 italic">&lt;!-- parent exposes --sd to siblings --&gt;</span>
+  &lt;div class="h-48 overflow-y-auto … <span class="text-cyan">[scroll-timeline:--sd_block]</span>"&gt;…&lt;/div&gt;
+  &lt;div class="tw-ring"&gt;↑&lt;/div&gt;
+&lt;/div&gt;
+
+<span class="text-slate-500 italic">/* in &lt;style&gt; — utilities can't register an @property or declare @keyframes */</span>
+@property --sd-deg { syntax:'&lt;angle&gt;'; inherits:false; initial-value:0deg }
+@keyframes grow    { from{ transform:scaleX(0) } to{ transform:scaleX(1) } }
+@keyframes sd-fill { from{ --sd-deg:0deg } to{ --sd-deg:360deg } }
+.tw-ring{ background:conic-gradient(#7c9cff var(--sd-deg), rgba(255,255,255,.07) 0);
+          animation:sd-fill linear both; <span class="text-cyan">animation-timeline:--sd</span> }</code></pre>
+    </figure>
+
+    <p class="mt-6 mb-2 font-mono text-xs text-slate-500">…and a reveal-on-enter row using <code class="text-cyan">[animation-timeline:view()]</code>:</p>
+    <div class="grid sm:grid-cols-3 gap-3">
+      <!-- animate via keyframe `reveal` + view() timeline + a range window -->
+      <div class="rounded-xl p-5 bg-white/5 border border-edge
+                  [animation-name:reveal] [animation-timing-function:linear] [animation-fill-mode:both]
+                  [animation-timeline:view()] [animation-range:entry_5%_cover_40%]">
+        <div class="font-mono text-xs text-cyan">01</div>
+        <h3 class="font-semibold mt-2">view()</h3>
+        <p class="text-sm text-slate-400 mt-1">Driven by my own scroll-through, no JS.</p>
+      </div>
+      <div class="rounded-xl p-5 bg-white/5 border border-edge
+                  [animation-name:reveal] [animation-timing-function:linear] [animation-fill-mode:both]
+                  [animation-timeline:view()] [animation-range:entry_5%_cover_40%]">
+        <div class="font-mono text-xs text-cyan">02</div>
+        <h3 class="font-semibold mt-2">arbitrary props</h3>
+        <p class="text-sm text-slate-400 mt-1">Square brackets become real CSS.</p>
+      </div>
+      <div class="rounded-xl p-5 bg-white/5 border border-edge
+                  [animation-name:reveal] [animation-timing-function:linear] [animation-fill-mode:both]
+                  [animation-timeline:view()] [animation-range:entry_5%_cover_40%]">
+        <div class="font-mono text-xs text-cyan">03</div>
+        <h3 class="font-semibold mt-2">+ the top bar</h3>
+        <p class="text-sm text-slate-400 mt-1">That progress line is <code class="font-mono text-cyan text-xs">scroll(root_block)</code>.</p>
+      </div>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">reveal-on-enter card · html / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- each card scrubs `reveal` against its own trip through the viewport --&gt;</span>
+&lt;div class="rounded-xl p-5 bg-white/5 border border-edge
+            [animation-name:reveal] [animation-timing-function:linear] [animation-fill-mode:both]
+            <span class="text-cyan">[animation-timeline:view()]</span>                <span class="text-slate-500 italic">&lt;!-- timeline = my own visibility --&gt;</span>
+            <span class="text-cyan">[animation-range:entry_5%_cover_40%]</span>"&gt;     <span class="text-slate-500 italic">&lt;!-- start → finish window --&gt;</span>
+  …card content…
+&lt;/div&gt;
+
+<span class="text-slate-500 italic">/* the keyframes live in &lt;style&gt; */</span>
+@keyframes reveal{
+  from{ opacity:0; transform:translateY(40px) scale(.96); filter:blur(6px) }
+  to  { opacity:1; transform:none;                        filter:blur(0)  }
+}</code></pre>
+    </figure>
+  </section>
+
+  <!-- ===================== 2 · SCROLL-TRIGGERED ===================== -->
+  <section>
+    <h2 class="font-mono text-sm text-accent">02 — scroll-triggered · <span class="text-slate-500">IntersectionObserver, once</span></h2>
+    <p class="mt-2 text-slate-400 text-sm">Fires a single transition when it enters, then stops watching. Scroll back — it stays put.</p>
+    <div class="mt-5 rounded-xl border border-edge bg-panel p-8">
+      <!-- starts hidden via utilities; JS removes the two state classes (staggered) -->
+      <div class="flex flex-wrap items-center gap-5">
+        <div data-trigger class="text-4xl font-extrabold text-accent opacity-0 translate-y-5 transition-all duration-700 ease-out">↑ 98%</div>
+        <div data-trigger style="transition-delay:.12s" class="text-4xl font-extrabold text-cyan opacity-0 translate-y-5 transition-all duration-700 ease-out">★</div>
+        <div data-trigger style="transition-delay:.24s" class="text-4xl font-extrabold text-accent opacity-0 translate-y-5 transition-all duration-700 ease-out">✓</div>
+        <p class="font-mono text-xs text-slate-400">IO removed <code class="text-cyan">opacity-0 translate-y-5</code> at 60% visible — once. Scroll away &amp; back: it stays.</p>
+      </div>
+      <button id="twReplay" class="mt-6 font-mono text-xs text-accent border border-edge rounded-lg px-4 py-2 hover:border-accent/60 transition">↻ replay</button>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">one-shot trigger · html / js</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- starts hidden via utilities; JS removes them once --&gt;</span>
+&lt;div data-trigger class="<span class="text-cyan">opacity-0 translate-y-5</span> transition-all duration-700 ease-out"&gt;↑ 98%&lt;/div&gt;
+&lt;div data-trigger style="transition-delay:.12s" class="opacity-0 translate-y-5 …"&gt;★&lt;/div&gt;
+
+const io = new IntersectionObserver(entries =&gt; {
+  entries.forEach(e =&gt; {
+    if(!e.isIntersecting) return;
+    e.target.classList.remove(<span class="text-cyan">'opacity-0','translate-y-5'</span>); <span class="text-slate-500 italic">// the CSS transition does the rest…</span>
+    io.unobserve(e.target);                                 <span class="text-slate-500 italic">// …and it only ever fires once</span>
+  });
+}, { threshold: 0.6 });                                     <span class="text-slate-500 italic">// fire at 60% visible</span>
+document.querySelectorAll('[data-trigger]').forEach(el =&gt; io.observe(el));</code></pre>
+    </figure>
+  </section>
+
+  <!-- ===================== 3 · SCROLL-STATE ===================== -->
+  <section>
+    <h2 class="font-mono text-sm text-accent">03 — scroll-state · <span class="text-slate-500">@container scroll-state(stuck: top)</span></h2>
+    <p class="mt-2 text-slate-400 text-sm">The sticky header restyles the instant it pins. <code class="font-mono text-cyan text-xs">[container-type:scroll-state]</code> is a utility; the query lives in the &lt;style&gt; block.</p>
+    <!-- the scroll container is the query container -->
+    <div class="mt-5 h-56 overflow-auto rounded-xl border border-edge bg-ink">
+      <!-- the STICKY element is the scroll-state container; the query styles its child -->
+      <div class="sticky top-0 z-10 [container-type:scroll-state]">
+        <div class="ss-bar px-4 py-3 font-mono text-xs text-slate-400 bg-white/5 border-b border-edge transition-all duration-300">
+          <b class="text-slate-100">Sticky header</b> <span class="hint">— scroll me, I restyle when pinned</span>
+        </div>
+      </div>
+      <div class="p-4 font-mono text-xs leading-loose text-slate-500">
+        keep scrolling inside this box…<br><br>
+        a sticky wrapper declares <code class="text-cyan">container-type: scroll-state</code> —
+        a scroll-state query can only style <b class="text-slate-300">descendants</b> of its container.
+        when it pins, the <code class="text-cyan">scroll-state(stuck: top)</code> rule paints the bar inside it.<br><br>
+        ⌁ ⌁ ⌁ ⌁ ⌁<br><br>more room to scroll…<br><br>⌁ ⌁ ⌁ ⌁ ⌁<br><br>…almost there…<br><br>end of box.
+      </div>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">stuck: top · html / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- the STICKY element is the container — a scroll-state query can only
+     style DESCENDANTS of its container, never the container itself --&gt;</span>
+&lt;div class="h-56 overflow-auto …"&gt;                            <span class="text-slate-500 italic">&lt;!-- scroller --&gt;</span>
+  &lt;div class="sticky top-0 <span class="text-cyan">[container-type:scroll-state]</span>"&gt;    <span class="text-slate-500 italic">&lt;!-- container --&gt;</span>
+    &lt;div class="ss-bar …"&gt;Sticky header&lt;/div&gt;                 <span class="text-slate-500 italic">&lt;!-- restyled child --&gt;</span>
+  &lt;/div&gt;
+  …content…
+&lt;/div&gt;
+
+<span class="text-slate-500 italic">/* in &lt;style&gt; — scroll-state() has no utility form */</span>
+<span class="text-cyan">@container scroll-state(stuck: top)</span>{
+  .ss-bar{ background:linear-gradient(90deg,#7c9cff,#5fe3d0); color:#0a0c15 }
+}</code></pre>
+    </figure>
+
+    <p class="mt-6 mb-2 font-mono text-xs text-slate-500">…and <code class="text-cyan">scroll-state(snapped: inline)</code> — drag the carousel, the centered card lights up:</p>
+    <div class="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-3">
+      <div class="snap-center shrink-0 basis-[74%] [container-type:scroll-state]">
+        <div class="snap-card rounded-2xl border border-edge bg-white/5 p-7 text-center">
+          <div class="font-bold text-xl text-slate-100">01 · Aurora</div><div class="font-mono text-xs text-slate-400 mt-1">swipe me to center</div>
+        </div>
+      </div>
+      <div class="snap-center shrink-0 basis-[74%] [container-type:scroll-state]">
+        <div class="snap-card rounded-2xl border border-edge bg-white/5 p-7 text-center">
+          <div class="font-bold text-xl text-slate-100">02 · Nebula</div><div class="font-mono text-xs text-slate-400 mt-1">whichever snaps, glows</div>
+        </div>
+      </div>
+      <div class="snap-center shrink-0 basis-[74%] [container-type:scroll-state]">
+        <div class="snap-card rounded-2xl border border-edge bg-white/5 p-7 text-center">
+          <div class="font-bold text-xl text-slate-100">03 · Quasar</div><div class="font-mono text-xs text-slate-400 mt-1">no JS, no observers</div>
+        </div>
+      </div>
+      <div class="snap-center shrink-0 basis-[74%] [container-type:scroll-state]">
+        <div class="snap-card rounded-2xl border border-edge bg-white/5 p-7 text-center">
+          <div class="font-bold text-xl text-slate-100">04 · Pulsar</div><div class="font-mono text-xs text-slate-400 mt-1">pure scroll-state</div>
+        </div>
+      </div>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">snapped: inline · html / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- snap scroller; each slide wrapper is its own scroll-state container --&gt;</span>
+&lt;div class="flex gap-3 overflow-x-auto <span class="text-cyan">snap-x snap-mandatory</span>"&gt;
+  &lt;div class="<span class="text-cyan">snap-center</span> shrink-0 basis-[74%] <span class="text-cyan">[container-type:scroll-state]</span>"&gt;
+    &lt;div class="snap-card …"&gt;01 · Aurora&lt;/div&gt;
+  &lt;/div&gt;
+  …more slides…
+&lt;/div&gt;
+
+<span class="text-slate-500 italic">/* base + snapped state — same specificity, so the query wins while snapped */</span>
+.snap-card{ transform:scale(.9); opacity:.45; transition:transform .3s, opacity .3s }
+<span class="text-cyan">@container scroll-state(snapped: inline)</span>{
+  .snap-card{ transform:scale(1); opacity:1; border-color:#7c9cff }
+}</code></pre>
+    </figure>
+  </section>
+
+  <!-- ===================== 4 · VIEW TRANSITIONS ===================== -->
+  <section>
+    <h2 class="font-mono text-sm text-accent">04 — view transitions · <span class="text-slate-500">startViewTransition()</span></h2>
+    <p class="mt-2 text-slate-400 text-sm">Click a tile to morph it into the panel. <code class="font-mono text-cyan text-xs">[view-transition-name:…]</code> is set in JS; the pseudo tuning is in &lt;style&gt;.</p>
+    <div id="vtGrid" class="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div data-vt="Indigo" tabindex="0" class="aspect-square rounded-xl grid place-items-center font-mono font-bold text-[#06121a] cursor-pointer bg-gradient-to-br from-[#7c9cff] to-[#a9c2ff]">A</div>
+      <div data-vt="Mint"   tabindex="0" class="aspect-square rounded-xl grid place-items-center font-mono font-bold text-[#06121a] cursor-pointer bg-gradient-to-br from-[#5fe3d0] to-[#7cf0c2]">B</div>
+      <div data-vt="Coral"  tabindex="0" class="aspect-square rounded-xl grid place-items-center font-mono font-bold text-[#06121a] cursor-pointer bg-gradient-to-br from-[#ff9bb3] to-[#ffc18a]">C</div>
+      <div data-vt="Violet" tabindex="0" class="aspect-square rounded-xl grid place-items-center font-mono font-bold text-[#06121a] cursor-pointer bg-gradient-to-br from-[#b59bff] to-[#7c9cff]">D</div>
+    </div>
+    <div id="vtDetail" class="hidden mt-3 rounded-2xl p-6 min-h-[170px] items-end text-[#06121a] font-extrabold text-2xl">
+      <span id="vtLabel">Indigo</span>
+      <span id="vtClose" class="ml-auto self-start font-mono text-xs font-bold cursor-pointer bg-black/25 text-white rounded-lg px-3 py-1.5">esc / close ✕</span>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">shared-element morph · js / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">// 1 · name the OLD element BEFORE the snapshot is taken…</span>
+tile.style.viewTransitionName = <span class="text-cyan">'vt-hero'</span>;
+
+document.startViewTransition(() =&gt; {
+  <span class="text-slate-500 italic">// 2 · …then hand the name over INSIDE the callback. If two elements
+  //     share a name in one snapshot, the browser SILENTLY skips the
+  //     transition — the classic "it just doesn't animate" bug.</span>
+  tile.style.viewTransitionName = '';
+  detail.style.viewTransitionName = <span class="text-cyan">'vt-hero'</span>;
+  detail.classList.remove('hidden');      <span class="text-slate-500 italic">// new state: panel visible</span>
+});
+
+<span class="text-slate-500 italic">/* 3 · tune the browser-generated morph in &lt;style&gt; */</span>
+::view-transition-old(vt-hero),
+::view-transition-new(vt-hero){
+  animation-duration:.45s;
+  animation-timing-function:cubic-bezier(.2,.7,.2,1);
+}</code></pre>
+    </figure>
+
+    <p class="mt-6 mb-2 font-mono text-xs text-slate-500">…and the classic circular clip-path wipe — <code class="text-cyan">[view-transition-name:vt-panel]</code> is a utility; click the panel:</p>
+    <div id="twPanel" class="tw-theme-a rounded-2xl p-7 min-h-[140px] flex flex-col justify-center gap-1.5 cursor-pointer select-none [view-transition-name:vt-panel]">
+      <div id="twPanelT" class="font-extrabold text-2xl">Dark mode</div>
+      <div class="font-mono text-xs opacity-85">click me — the new state wipes in as a circle from your cursor</div>
+    </div>
+
+    <figure class="code mt-4 rounded-xl border border-edge bg-[#05060b] overflow-hidden">
+      <figcaption class="flex items-center justify-between gap-3 px-4 py-2 border-b border-edge bg-white/[.03]">
+        <span class="font-mono text-[11px] text-slate-500">circular clip-path wipe · html / js / css</span>
+        <button class="copy font-mono text-[11px] text-accent border border-edge rounded-md px-2.5 py-1 hover:border-accent/60 transition">copy</button>
+      </figcaption>
+      <pre class="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-slate-300"><code><span class="text-slate-500 italic">&lt;!-- the panel keeps its name full-time — as a plain utility --&gt;</span>
+&lt;div id="twPanel" class="tw-theme-a … <span class="text-cyan">[view-transition-name:vt-panel]</span>"&gt;…&lt;/div&gt;
+
+panel.addEventListener('click', (e) =&gt; {
+  const r = panel.getBoundingClientRect();
+  <span class="text-slate-500 italic">// ::view-transition-* pseudos live on &lt;html&gt;, so the click
+  // coords must be set on the ROOT element to be visible to them</span>
+  document.documentElement.style.setProperty(<span class="text-cyan">'--cx'</span>, (e.clientX - r.left) / r.width  * 100 + '%');
+  document.documentElement.style.setProperty(<span class="text-cyan">'--cy'</span>, (e.clientY - r.top)  / r.height * 100 + '%');
+  document.startViewTransition(flip);     <span class="text-slate-500 italic">// flip() just swaps the theme classes</span>
+});
+
+<span class="text-slate-500 italic">/* freeze the old snapshot; clip-wipe the new one in over it */</span>
+::view-transition-old(vt-panel){ animation:none }
+::view-transition-new(vt-panel){ animation:<span class="text-cyan">vt-circle</span> .55s cubic-bezier(.2,.7,.2,1) both }
+@keyframes vt-circle{
+  from{ clip-path:circle(0%   at var(--cx,50%) var(--cy,50%)) }
+  to  { clip-path:circle(150% at var(--cx,50%) var(--cy,50%)) }
+}</code></pre>
+    </figure>
+  </section>
+
+  <footer class="pt-10 border-t border-edge font-mono text-xs text-slate-500 leading-relaxed">
+    Single file, no build. Tailwind via Play CDN; the small &lt;style&gt; block holds only what utilities can’t express
+    (@keyframes, @container scroll-state, ::view-transition pseudos). Features degrade gracefully where unsupported.
+    <a href="./scroll-animations-guide.html" class="text-accent hover:underline">Open the full annotated guide →</a>
+  </footer>
+</main>
+
+<script>
+/* scroll-triggered: one-shot reveal via IntersectionObserver (+ replay) */
+(function(){
+  const els = [...document.querySelectorAll('[data-trigger]')];
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      e.target.classList.remove('opacity-0','translate-y-5'); // fade up, once
+      io.unobserve(e.target);
+    });
+  }, { threshold: 0.6 });
+  els.forEach(el=>io.observe(el));
+
+  const replay = document.getElementById('twReplay');
+  if(replay) replay.addEventListener('click',()=>{
+    els.forEach(el=>el.classList.add('opacity-0','translate-y-5')); // reset
+    void document.body.offsetWidth;                                 // reflow
+    els.forEach(el=>el.classList.remove('opacity-0','translate-y-5'));
+  });
+})();
+
+/* view transition: circular clip-path wipe (theme flip from cursor) */
+(function(){
+  const panel=document.getElementById('twPanel');
+  const t=document.getElementById('twPanelT');
+  if(!panel) return;
+  let dark=true;
+  const flip=()=>{
+    dark=!dark;
+    panel.classList.toggle('tw-theme-a',dark);
+    panel.classList.toggle('tw-theme-b',!dark);
+    t.textContent = dark ? 'Dark mode' : 'Light mode';
+  };
+  panel.addEventListener('click',(e)=>{
+    const r=panel.getBoundingClientRect();
+    // ::view-transition-* pseudos live on <html>, not on the panel,
+    // so the coords must be set on the root element to be visible there
+    document.documentElement.style.setProperty('--cx', ((e.clientX-r.left)/r.width*100)+'%');
+    document.documentElement.style.setProperty('--cy', ((e.clientY-r.top)/r.height*100)+'%');
+    document.startViewTransition ? document.startViewTransition(flip) : flip();
+  });
+})();
+
+/* view transitions: shared-element morph between tile and detail panel */
+(function(){
+  const grid=document.getElementById('vtGrid');
+  const detail=document.getElementById('vtDetail');
+  const label=document.getElementById('vtLabel');
+  const closeBtn=document.getElementById('vtClose');
+  let active=null;
+
+  const grad={
+    Indigo:'linear-gradient(140deg,#7c9cff,#a9c2ff)',
+    Mint:'linear-gradient(140deg,#5fe3d0,#7cf0c2)',
+    Coral:'linear-gradient(140deg,#ff9bb3,#ffc18a)',
+    Violet:'linear-gradient(140deg,#b59bff,#7c9cff)'
+  };
+
+  /* Only ONE element may carry `view-transition-name:vt-hero` per snapshot:
+     the tile in the OLD state, the detail panel in the NEW state.
+     A duplicate name makes the browser skip the transition entirely —
+     and it kept skipping every later transition on the page too. */
+  function open(tile){
+    const name=tile.dataset.vt;
+    const wasOpen=!detail.classList.contains('hidden');
+    if(!wasOpen) tile.style.viewTransitionName='vt-hero'; // old element, named BEFORE the snapshot
+    active=tile;
+    const run=()=>{
+      tile.style.viewTransitionName='';                   // hand the name over…
+      detail.style.viewTransitionName='vt-hero';          // …to the new element
+      detail.style.background=grad[name];
+      label.textContent=name;
+      detail.classList.remove('hidden'); detail.classList.add('flex');
+    };
+    document.startViewTransition ? document.startViewTransition(run) : run();
+  }
+  function close(){
+    if(detail.classList.contains('hidden')) return;
+    const tile=active;
+    const run=()=>{
+      detail.classList.add('hidden'); detail.classList.remove('flex');
+      detail.style.viewTransitionName='';
+      if(tile) tile.style.viewTransitionName='vt-hero';   // morph back into the tile
+    };
+    const cleanup=()=>{ if(tile) tile.style.viewTransitionName=''; active=null; };
+    if(document.startViewTransition){
+      document.startViewTransition(run).finished.finally(cleanup);
+    } else { run(); cleanup(); }
+  }
+
+  grid.querySelectorAll('[data-vt]').forEach(t=>{
+    t.addEventListener('click',()=>open(t));
+    t.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();open(t);} });
+  });
+  closeBtn.addEventListener('click',close);
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+})();
+
+/* copy buttons on the per-example code blocks */
+(function(){
+  document.querySelectorAll('figure.code').forEach(fig=>{
+    const btn=fig.querySelector('button.copy'), code=fig.querySelector('code');
+    if(!btn||!code) return;
+    btn.addEventListener('click',()=>{
+      navigator.clipboard.writeText(code.textContent).then(()=>{
+        btn.textContent='copied ✓'; btn.classList.add('text-cyan');
+        setTimeout(()=>{ btn.textContent='copy'; btn.classList.remove('text-cyan'); },1200);
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>
