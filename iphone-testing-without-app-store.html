@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iPhone Testing Field Guide — Sideload &amp; LAN, no App Store</title>
+<meta name="description" content="Two ways to test a Capacitor + SpacetimeDB game on a real iPhone without the App Store: sideload via Xcode with a free Apple ID, or Safari over your LAN.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070b0c;
+    --bg-2:#0a0f11;
+    --surface:#0d1418;
+    --surface-2:#101b20;
+    --border:rgba(80,212,238,.12);
+    --border-strong:rgba(80,212,238,.26);
+    --text:#e9f2f5;
+    --muted:#8ba2a9;
+    --faint:#54686e;
+    --accent:#34d6ee;
+    --accent-bright:#9fecff;
+    --warn:#ff7e6b;
+    --grid:rgba(60,205,238,.045);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --body:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --disp:'Bricolage Grotesque','Hanken Grotesk',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .bg-layer{position:fixed;inset:0;z-index:-2;pointer-events:none}
+  .bg-grid{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+  }
+  .bg-glow{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(700px 420px at 75% -5%,rgba(52,214,238,.16),transparent 70%),
+      radial-gradient(620px 500px at 8% 8%,rgba(255,126,107,.07),transparent 65%);
+  }
+  .bg-noise{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(16px,4vw,40px);
+    background:rgba(7,11,12,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .brand .mark{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    background:conic-gradient(from 210deg,var(--accent),var(--warn),var(--accent-bright),var(--accent));
+    display:grid;place-items:center;color:#04181c;font-weight:800;font-family:var(--disp);
+    box-shadow:0 0 22px rgba(52,214,238,.35);
+  }
+  .brand b{color:var(--text);font-weight:700}
+  .brand span{color:var(--muted)}
+  .topbar nav{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px}
+  .topbar nav a{color:var(--muted);text-decoration:none;transition:color .2s}
+  .topbar nav a:hover{color:var(--accent)}
+  @media(max-width:780px){.topbar nav{display:none}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+  @media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+  aside.toc{
+    position:sticky;top:96px;align-self:start;
+    font-family:var(--mono);font-size:12.5px;
+    padding-top:8px;
+  }
+  aside.toc .lbl{color:var(--faint);letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;margin-bottom:14px}
+  aside.toc a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--muted);text-decoration:none;padding:6px 0;
+    border-left:2px solid transparent;padding-left:14px;margin-left:-2px;
+    transition:color .2s,border-color .2s;
+  }
+  aside.toc a .num{color:var(--faint);font-size:10.5px;min-width:18px}
+  aside.toc a:hover{color:var(--text)}
+  aside.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+  aside.toc a.active .num{color:var(--accent)}
+  @media(max-width:920px){aside.toc{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:130px 0 56px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:6px 14px;margin-bottom:26px;
+    background:rgba(52,214,238,.06);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  h1.hero-title{
+    font-family:var(--disp);
+    font-weight:800;
+    font-size:clamp(2.7rem,8.2vw,6.4rem);
+    line-height:.96;letter-spacing:-.025em;
+    margin-bottom:22px;
+  }
+  h1.hero-title .glow{
+    color:var(--accent);
+    text-shadow:0 0 38px rgba(52,214,238,.45);
+    font-style:italic;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2.3vw,1.35rem);
+    color:var(--muted);max-width:640px;margin-bottom:36px;
+  }
+  .hero-sub b{color:var(--text);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:linear-gradient(180deg,#08110f,#0a1311);
+    border:1px solid var(--border-strong);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(52,214,238,.04) inset;
+    max-width:680px;
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(52,214,238,.03)}
+  .term-bar .dots{display:flex;gap:7px}
+  .term-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .term-bar .dots i:nth-child(1){background:#ff5f56}
+  .term-bar .dots i:nth-child(2){background:#ffbd2e}
+  .term-bar .dots i:nth-child(3){background:#27c93f}
+  .term-bar .ttl{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+  .term-body{padding:20px 20px 24px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:188px}
+  .term-body .ln{white-space:pre-wrap;word-break:break-word}
+  .term-body .pr{color:var(--accent)}
+  .term-body .cmd{color:var(--text)}
+  .term-body .out{color:var(--muted)}
+  .term-body .ok{color:#7ee08a}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .stat{
+    border:1px solid var(--border);border-radius:12px;padding:16px 20px;
+    background:var(--surface);min-width:148px;flex:1;
+  }
+  .stat .k{font-family:var(--disp);font-weight:800;font-size:1.85rem;color:var(--accent);line-height:1}
+  .stat .v{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+  /* ---------- sections ---------- */
+  section.block{padding:54px 0;border-top:1px solid var(--border);scroll-margin-top:88px}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:8px}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+  h3{font-family:var(--disp);font-weight:600;font-size:1.25rem;margin:30px 0 12px;letter-spacing:-.01em}
+  p{color:#c4d2d6;margin:14px 0;max-width:66ch}
+  p.lead{color:var(--muted);font-size:1.08rem}
+  a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+  a.inline:hover{border-color:var(--accent)}
+  strong{color:var(--text)}
+  ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:#c4d2d6;max-width:66ch}
+  li{margin:7px 0}
+  li::marker{color:var(--accent)}
+  code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;color:var(--accent-bright)}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    position:relative;margin:20px 0;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;background:#091011;
+  }
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:rgba(52,214,238,.03);
+    font-family:var(--mono);font-size:11px;color:var(--faint);
+  }
+  .code-head .tag{display:flex;align-items:center;gap:8px}
+  .code-head .tag b{color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .copy{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--border);
+    padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .18s;
+  }
+  .copy:hover{color:var(--accent);border-color:var(--border-strong)}
+  .copy.done{color:#7ee08a;border-color:rgba(126,224,138,.4)}
+  pre{padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+  pre code{color:#d7e1e3;white-space:pre}
+  .tok-c{color:var(--faint);font-style:italic}      /* comment */
+  .tok-k{color:var(--accent)}                         /* keyword/cmd */
+  .tok-s{color:#9fe6a0}                               /* string */
+  .tok-f{color:var(--accent-bright)}                  /* func/flag */
+  .tok-n{color:#e6b3ff}                               /* number */
+  .tok-p{color:var(--muted)}                          /* punctuation/prompt */
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;
+    border-radius:12px;border:1px solid var(--border);background:var(--surface);
+    border-left:3px solid var(--accent);
+  }
+  .callout.warn{border-left-color:var(--warn)}
+  .callout .ico{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none;font-size:13px;padding-top:2px}
+  .callout.warn .ico{color:var(--warn)}
+  .callout p{margin:0;color:#c4d2d6;font-size:.96rem;max-width:none}
+  .callout b{color:var(--text)}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(52,214,238,.04)}
+  td{color:#c4d2d6}
+  td:first-child{font-family:var(--mono);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(52,214,238,.03)}
+
+  /* ---------- steps grid ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .card{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card .ix{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px}
+  .card h4{font-family:var(--disp);font-weight:600;font-size:1.12rem;margin-bottom:8px}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:48px 0 70px;margin-top:30px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+  footer h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  footer a{display:block;color:var(--muted);text-decoration:none;font-size:.94rem;padding:5px 0;transition:color .2s}
+  footer a:hover{color:var(--accent)}
+  .foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:36px;line-height:1.7;max-width:560px}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .rv{animation:none;opacity:1;transform:none}
+    .cursor,.eyebrow .dot{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">C</span><span>coorpg&nbsp;//&nbsp;</span><b>ios testing</b></div>
+  <nav>
+    <a href="#overview">two ways</a>
+    <a href="#sideload">sideload</a>
+    <a href="#device">device setup</a>
+    <a href="#safari">safari/lan</a>
+    <a href="#which">which</a>
+  </nav>
+</header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow rv"><span class="dot"></span> iOS · No App Store · SpacetimeDB Maincloud</div>
+  <h1 class="hero-title rv" style="animation-delay:.05s">Test on a real<br><span class="glow">iPhone</span>. No store.</h1>
+  <p class="hero-sub rv" style="animation-delay:.12s">Two ways to play the game on a real iPhone for testing — <b>sideload the Capacitor app</b> with a free Apple ID, or just open it in <b>Safari over your LAN</b>. Both connect to SpacetimeDB <b>Maincloud</b> over <code class="ic">wss://</code>, so there's no local-server networking to wrangle.</p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <span class="ttl">zsh — ~/coorpg-game</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="k">2</div><div class="v">// ways to install</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="k">$0</div><div class="v">// no paid dev account</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="k">7 days</div><div class="v">// free cert lifespan</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="k">:5173</div><div class="v">// vite lan port</div></div>
+  </div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="shell">
+
+  <aside class="toc">
+    <div class="lbl">Contents</div>
+    <a href="#overview"><span class="num">01</span> Two ways in</a>
+    <a href="#sideload"><span class="num">02</span> Option A · Build &amp; open</a>
+    <a href="#device"><span class="num">03</span> Device &amp; signing</a>
+    <a href="#run"><span class="num">04</span> Run &amp; trust</a>
+    <a href="#safari"><span class="num">05</span> Option B · Safari/LAN</a>
+    <a href="#which"><span class="num">06</span> Which to use</a>
+  </aside>
+
+  <main>
+
+  <!-- 01 -->
+  <section class="block" id="overview">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Two ways onto a real phone</h2></div>
+    <p class="lead">You don't need the App Store — or a paid developer account — to run the game on a physical iPhone. Pick the path that matches what you're testing.</p>
+    <p>Both paths talk to SpacetimeDB <strong>Maincloud</strong> over <code class="ic">wss://</code> — that's the <code class="ic">cloud</code> Vite mode. Nothing connects to a local server, so you never have to expose or tunnel a backend to your phone. The only difference is whether the game runs inside the <strong>real native shell</strong> or just in <strong>mobile Safari</strong>.</p>
+    <div class="cards">
+      <div class="card"><div class="ix">opt / a · xcode</div><h4>Sideload the app</h4><p>Installs the native Capacitor shell (<code class="ic">com.coorpg.game</code>) onto your phone via Xcode. Free Apple ID; the install expires after 7 days.</p></div>
+      <div class="card"><div class="ix">opt / b · safari</div><h4>Safari over LAN</h4><p>Skip the native shell entirely. Open the dev server in mobile Safari on the same Wi-Fi. Instant hot-reload, zero install.</p></div>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>The game is a pure canvas web app, so <b>Option B</b> is the fastest loop for day-to-day work. Reach for <b>Option A</b> when you need to verify the real bundled <code class="ic">WKWebView</code> — touch input, safe areas, and performance can differ from Safari.</p></div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="sideload">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Option A — build the bundle &amp; open Xcode</h2></div>
+    <p class="lead">This installs the real native shell (<code class="ic">ios/App</code>, appId <code class="ic">com.coorpg.game</code>) onto your phone. No paid developer account needed — a free Apple ID works.</p>
+    <p>First, build the web bundle for cloud mode and sync it into the iOS project, then open the workspace in Xcode:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># build for Maincloud + copy the web build into ios/App</span>
+<span class="tok-k">pnpm</span> run ios:sync   <span class="tok-c"># vite build --mode cloud + cap sync ios</span>
+
+<span class="tok-c"># open the native project in Xcode.app</span>
+<span class="tok-k">pnpm</span> run ios:open   <span class="tok-c"># opens ios/App in Xcode</span></code></pre>
+    </div>
+    <p>Now <strong>connect the iPhone via USB</strong>. The first time, tap <strong>Trust</strong> on the phone when prompted, then unlock it.</p>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Never build with <code class="ic">xcodebuild</code> from a headless terminal — it hangs.</b> Always build and run from <b>Xcode.app</b> itself. The CLI build path is not supported here.</p></div>
+    <div class="callout"><span class="ico">▎i</span><p>The sideloaded cert is good for <b>7 days</b>. When it expires the app just won't launch — re-run it from Xcode to refresh another 7 days. No reinstall of the project needed.</p></div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="device">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Enable Developer Mode &amp; set up signing</h2></div>
+    <p>A physical device needs two one-time setups: <strong>Developer Mode</strong> on the phone, and a <strong>signing team</strong> in Xcode. Do these once per device / per machine.</p>
+
+    <h3>On the iPhone — Developer Mode</h3>
+    <p>This toggle only appears <em>after</em> Xcode has seen the device over USB at least once. Enabling it requires a reboot.</p>
+    <div class="callout"><span class="ico">▎i</span><p><b>Settings → Privacy &amp; Security → Developer Mode → on.</b> The phone restarts; confirm the prompt after it boots back up.</p></div>
+
+    <h3>In Xcode — automatic signing</h3>
+    <p>Select the <strong>App</strong> target → <strong>Signing &amp; Capabilities</strong> → check <strong>Automatically manage signing</strong> → pick your <strong>Personal Team</strong>. If no team is listed, add your Apple ID first:</p>
+    <div class="cards">
+      <div class="card"><div class="ix">xcode / accounts</div><h4>Add your Apple ID</h4><p>Xcode → Settings → Accounts → <b>+</b> → Apple ID. Your free account then shows up as a Personal Team.</p></div>
+      <div class="card"><div class="ix">xcode / signing</div><h4>Pick the team</h4><p>App target → Signing &amp; Capabilities → Automatically manage signing → select your Personal Team.</p></div>
+      <div class="card"><div class="ix">ios / developer mode</div><h4>Developer Mode</h4><p>Settings → Privacy &amp; Security → Developer Mode → on, then reboot the phone to apply.</p></div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="run">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Run it &amp; trust the developer cert</h2></div>
+    <p>With signing set, select your iPhone in Xcode's device dropdown and hit <strong>⌘R</strong>. Xcode builds, installs, and launches the app on the phone.</p>
+    <p>On the <strong>first launch only</strong>, iOS blocks the app until you trust the certificate tied to your Apple ID:</p>
+    <div class="callout"><span class="ico">▎i</span><p><b>Settings → General → VPN &amp; Device Management → trust your Apple ID.</b> After that, the app launches normally from the home screen — untethered — until the 7-day cert expires.</p></div>
+    <h3>Re-deploy over Wi-Fi</h3>
+    <p>You don't have to stay plugged in. In Xcode's <strong>Window → Devices and Simulators</strong>, enable <strong>Connect via network</strong> for your iPhone. After that, ⌘R deploys over Wi-Fi with no cable attached.</p>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>App won't open after a week?</b> That's the expected 7-day expiry, not a bug. Plug in (or use network deploy), hit ⌘R from Xcode, and it's refreshed.</p></div>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="safari">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Option B — Safari over your LAN</h2></div>
+    <p class="lead">The game is a pure canvas web app, so you can skip the native shell entirely while iterating. This is the fastest possible loop — changes hot-reload on the phone with no rebuild or reinstall.</p>
+    <p>Start the dev server in cloud mode, exposed to the local network with <code class="ic">--host</code>:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># dev server, Maincloud mode, listening on the LAN</span>
+<span class="tok-k">pnpm</span> run dev:cloud <span class="tok-f">--</span> <span class="tok-f">--host</span>
+
+<span class="tok-c"># Vite prints a "Network:" URL on startup, e.g.</span>
+<span class="tok-c">#   ➜  Network: http://192.168.1.42:5173/</span></code></pre>
+    </div>
+    <p>On the iPhone — <strong>connected to the same Wi-Fi</strong> — open Safari to that Network URL: <code class="ic">http://&lt;your-mac-lan-ip&gt;:5173</code>. If Vite didn't print it, find your IP under <strong>System Settings → Wi-Fi → Details</strong>.</p>
+    <p>Optionally, tap <strong>Share → Add to Home Screen</strong> for a fullscreen, app-like icon that launches without Safari chrome.</p>
+    <div class="callout"><span class="ico">▎i</span><p>Edits hot-reload <b>instantly</b> on the phone — no rebuild, no reinstall, no cable. This is the right loop for day-to-day gameplay tuning.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="which">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Which one to use</h2></div>
+    <p class="lead">Use the lightweight loop for everyday work, and the native shell when you need to trust what you're seeing on the real device.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What you're doing</th><th>Use</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Day-to-day gameplay</td><td>Option B</td><td>Instant hot-reload — no rebuild or reinstall between changes.</td></tr>
+          <tr><td>Touch, safe areas, perf</td><td>Option A</td><td>Behaves differently inside the bundled WKWebView than in Safari.</td></tr>
+          <tr><td>Verifying the real app</td><td>Option A</td><td>It's the actual native shell users would install (<code class="ic">com.coorpg.game</code>).</td></tr>
+          <tr><td>Quick share / demo</td><td>Option B</td><td>Add to Home Screen gives an app-like icon with zero signing.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>A good rhythm: live in <b>Option B</b> all day, then do a pass in <b>Option A</b> before you trust a build — to catch input, safe-area, and performance differences the shell introduces.</p></div>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+<div class="wrap">
+  <div class="foot-grid">
+    <div>
+      <h4>Project</h4>
+      <a>appId · com.coorpg.game</a>
+      <a>native shell · ios/App</a>
+      <a>vite mode · cloud (wss://)</a>
+    </div>
+    <div>
+      <h4>Apple docs</h4>
+      <a href="https://developer.apple.com/documentation/xcode/distributing-your-app-to-registered-devices" target="_blank" rel="noopener">Run on a device (Xcode) ↗</a>
+      <a href="https://support.apple.com/guide/iphone/turn-developer-mode-on-or-off-iph4f6c2e30b/ios" target="_blank" rel="noopener">Developer Mode on iPhone ↗</a>
+    </div>
+    <div>
+      <h4>Tooling</h4>
+      <a href="https://capacitorjs.com/docs/ios" target="_blank" rel="noopener">Capacitor — iOS ↗</a>
+      <a href="https://vite.dev/config/server-options" target="_blank" rel="noopener">Vite — server.host ↗</a>
+      <a href="https://spacetimedb.com/docs" target="_blank" rel="noopener">SpacetimeDB docs ↗</a>
+    </div>
+  </div>
+  <p class="foot-note">An internal testing field guide. Both paths connect to SpacetimeDB Maincloud over wss:// — no local-server networking is involved. Free-Apple-ID installs expire after 7 days; just re-run from Xcode to refresh. Build from Xcode.app, never headless xcodebuild.</p>
+</div>
+</footer>
+
+<script>
+/* ---- copy buttons ---- */
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('pre code');
+    navigator.clipboard.writeText(code.innerText.trim()).then(()=>{
+      const t=btn.textContent;btn.textContent='copied ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+/* ---- scroll-spy nav ---- */
+const links=[...document.querySelectorAll('aside.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id); if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section.block').forEach(s=>spy.observe(s));
+
+/* ---- hero terminal typewriter ---- */
+(function(){
+  const el=document.getElementById('term');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines=[
+    {t:'$ ',c:'pnpm run ios:sync',cls:'cmd'},
+    {t:'',c:'vite build --mode cloud  ✓   cap sync ios  ✓',cls:'ok',pre:true},
+    {t:'$ ',c:'pnpm run dev:cloud -- --host',cls:'cmd'},
+    {t:'',c:'➜  Network: http://192.168.1.42:5173/',cls:'out',pre:true},
+    {t:'',c:'> open on iPhone · Add to Home Screen 📱',cls:'out',pre:true},
+  ];
+  if(reduce){
+    el.innerHTML=lines.map(l=>`<div class="ln"><span class="pr">${l.t}</span><span class="${l.cls}">${l.c}</span></div>`).join('');
+    return;
+  }
+  let li=0;
+  function nextLine(){
+    if(li>=lines.length){
+      const cur=document.createElement('span');cur.className='cursor';
+      el.lastChild.appendChild(cur);return;
+    }
+    const l=lines[li++];
+    const row=document.createElement('div');row.className='ln';
+    row.innerHTML=`<span class="pr">${l.t}</span><span class="${l.cls}"></span>`;
+    el.appendChild(row);
+    const target=row.querySelector('span:last-child');
+    if(l.pre){ // print instantly (program output)
+      let i=0;const speed=10;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,speed);else setTimeout(nextLine,260);
+      })();
+    }else{
+      let i=0;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,28);else setTimeout(nextLine,360);
+      })();
+    }
+  }
+  nextLine();
+})();
+</script>
+</body>
+</html>
