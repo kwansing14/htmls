@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PinchTab Field Guide — Give your AI agent a real browser</title>
+<meta name="description" content="How to install and use PinchTab — a standalone HTTP server that gives AI agents direct control over Chrome through a CLI, an HTTP API, and an MCP server.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#06090b;
+    --bg-2:#0a0e10;
+    --surface:#0c1316;
+    --surface-2:#101a1d;
+    --border:rgba(130,236,242,.12);
+    --border-strong:rgba(130,236,242,.26);
+    --text:#e9f4f5;
+    --muted:#8fa6a9;
+    --faint:#56696b;
+    --accent:#35d6e0;
+    --accent-bright:#8af1f4;
+    --warn:#ff7a59;
+    --grid:rgba(53,214,224,.05);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --body:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --disp:'Bricolage Grotesque','Hanken Grotesk',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .bg-layer{position:fixed;inset:0;z-index:-2;pointer-events:none}
+  .bg-grid{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+  }
+  .bg-glow{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(700px 420px at 75% -5%,rgba(53,214,224,.16),transparent 70%),
+      radial-gradient(620px 500px at 8% 8%,rgba(255,122,89,.07),transparent 65%);
+  }
+  .bg-noise{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(16px,4vw,40px);
+    background:rgba(6,9,11,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .brand .mark{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    background:conic-gradient(from 210deg,var(--accent),var(--warn),var(--accent-bright),var(--accent));
+    display:grid;place-items:center;color:#04181a;font-weight:800;font-family:var(--disp);
+    box-shadow:0 0 22px rgba(53,214,224,.35);
+  }
+  .brand b{color:var(--text);font-weight:700}
+  .brand span{color:var(--muted)}
+  .topbar nav{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px}
+  .topbar nav a{color:var(--muted);text-decoration:none;transition:color .2s}
+  .topbar nav a:hover{color:var(--accent)}
+  @media(max-width:780px){.topbar nav{display:none}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+  @media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+  aside.toc{
+    position:sticky;top:96px;align-self:start;
+    font-family:var(--mono);font-size:12.5px;
+    padding-top:8px;
+  }
+  aside.toc .lbl{color:var(--faint);letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;margin-bottom:14px}
+  aside.toc a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--muted);text-decoration:none;padding:6px 0;
+    border-left:2px solid transparent;padding-left:14px;margin-left:-2px;
+    transition:color .2s,border-color .2s;
+  }
+  aside.toc a .num{color:var(--faint);font-size:10.5px;min-width:18px}
+  aside.toc a:hover{color:var(--text)}
+  aside.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+  aside.toc a.active .num{color:var(--accent)}
+  @media(max-width:920px){aside.toc{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:130px 0 56px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:6px 14px;margin-bottom:26px;
+    background:rgba(53,214,224,.06);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  h1.hero-title{
+    font-family:var(--disp);
+    font-weight:800;
+    font-size:clamp(2.7rem,8.2vw,6.4rem);
+    line-height:.96;letter-spacing:-.025em;
+    margin-bottom:22px;
+  }
+  h1.hero-title .glow{
+    color:var(--accent);
+    text-shadow:0 0 38px rgba(53,214,224,.45);
+    font-style:italic;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2.3vw,1.35rem);
+    color:var(--muted);max-width:640px;margin-bottom:36px;
+  }
+  .hero-sub b{color:var(--text);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:linear-gradient(180deg,#080d0f,#0a1113);
+    border:1px solid var(--border-strong);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(53,214,224,.04) inset;
+    max-width:680px;
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(53,214,224,.03)}
+  .term-bar .dots{display:flex;gap:7px}
+  .term-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .term-bar .dots i:nth-child(1){background:#ff5f56}
+  .term-bar .dots i:nth-child(2){background:#ffbd2e}
+  .term-bar .dots i:nth-child(3){background:#27c93f}
+  .term-bar .ttl{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+  .term-body{padding:20px 20px 24px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:188px}
+  .term-body .ln{white-space:pre-wrap;word-break:break-word}
+  .term-body .pr{color:var(--accent)}
+  .term-body .cmd{color:var(--text)}
+  .term-body .out{color:var(--muted)}
+  .term-body .ok{color:#7ee08a}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .stat{
+    border:1px solid var(--border);border-radius:12px;padding:16px 20px;
+    background:var(--surface);min-width:148px;flex:1;
+  }
+  .stat .k{font-family:var(--disp);font-weight:800;font-size:1.85rem;color:var(--accent);line-height:1}
+  .stat .v{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+  /* ---------- sections ---------- */
+  section.block{padding:54px 0;border-top:1px solid var(--border);scroll-margin-top:88px}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:8px}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+  h3{font-family:var(--disp);font-weight:600;font-size:1.25rem;margin:30px 0 12px;letter-spacing:-.01em}
+  p{color:#c7d6d8;margin:14px 0;max-width:66ch}
+  p.lead{color:var(--muted);font-size:1.08rem}
+  a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+  a.inline:hover{border-color:var(--accent)}
+  strong{color:var(--text)}
+  ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:#c7d6d8;max-width:66ch}
+  li{margin:7px 0}
+  li::marker{color:var(--accent)}
+  code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;color:var(--accent-bright)}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    position:relative;margin:20px 0;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;background:#080d0f;
+  }
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:rgba(53,214,224,.03);
+    font-family:var(--mono);font-size:11px;color:var(--faint);
+  }
+  .code-head .tag{display:flex;align-items:center;gap:8px}
+  .code-head .tag b{color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .copy{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--border);
+    padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .18s;
+  }
+  .copy:hover{color:var(--accent);border-color:var(--border-strong)}
+  .copy.done{color:#7ee08a;border-color:rgba(126,224,138,.4)}
+  pre{padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+  pre code{color:#d6e6e7;white-space:pre}
+  .tok-c{color:var(--faint);font-style:italic}      /* comment */
+  .tok-k{color:var(--accent)}                         /* keyword/cmd */
+  .tok-s{color:#9fe6a0}                               /* string */
+  .tok-f{color:var(--accent-bright)}                  /* func/flag */
+  .tok-n{color:#e6b3ff}                               /* number */
+  .tok-p{color:var(--muted)}                          /* punctuation/prompt */
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;
+    border-radius:12px;border:1px solid var(--border);background:var(--surface);
+    border-left:3px solid var(--accent);
+  }
+  .callout.warn{border-left-color:var(--warn)}
+  .callout .ico{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none;font-size:13px;padding-top:2px}
+  .callout.warn .ico{color:var(--warn)}
+  .callout p{margin:0;color:#c7d6d8;font-size:.96rem;max-width:none}
+  .callout b{color:var(--text)}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(53,214,224,.04)}
+  td{color:#c7d6d8}
+  td:first-child{font-family:var(--mono);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(53,214,224,.03)}
+
+  /* ---------- steps grid ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .card{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card .ix{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px}
+  .card h4{font-family:var(--disp);font-weight:600;font-size:1.12rem;margin-bottom:8px}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:48px 0 70px;margin-top:30px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+  footer h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  footer a{display:block;color:var(--muted);text-decoration:none;font-size:.94rem;padding:5px 0;transition:color .2s}
+  footer a:hover{color:var(--accent)}
+  .foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:36px;line-height:1.7;max-width:560px}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .rv{animation:none;opacity:1;transform:none}
+    .cursor,.eyebrow .dot{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">P</span><span>pinchtab&nbsp;//&nbsp;</span><b>field guide</b></div>
+  <nav>
+    <a href="#install">install</a>
+    <a href="#cli">drive</a>
+    <a href="#mcp">agent</a>
+    <a href="#api">http api</a>
+    <a href="#security">security</a>
+  </nav>
+</header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow rv"><span class="dot"></span> Open-source · Chrome control for agents · local-first</div>
+  <h1 class="hero-title rv" style="animation-delay:.05s">Give your AI agent<br>a real <span class="glow">browser</span>.</h1>
+  <p class="hero-sub rv" style="animation-delay:.12s"><b>PinchTab</b> is a standalone HTTP server that hands an AI agent direct control of Chrome — navigate, read, click, and fill real pages. One ~15&nbsp;MB binary, no dependencies, <b>local-first</b>, and token-efficient enough to run a full browse loop in-context.</p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <span class="ttl">zsh — pinchtab</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="k">15MB</div><div class="v">// single binary</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="k">:9867</div><div class="v">// localhost-only default</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="k">~800</div><div class="v">// tokens per page</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="k">34</div><div class="v">// agent tools (mcp)</div></div>
+  </div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="shell">
+
+  <aside class="toc">
+    <div class="lbl">Contents</div>
+    <a href="#why"><span class="num">01</span> What PinchTab is</a>
+    <a href="#concepts"><span class="num">02</span> Five concepts</a>
+    <a href="#install"><span class="num">03</span> Install</a>
+    <a href="#server"><span class="num">04</span> Start the server</a>
+    <a href="#cli"><span class="num">05</span> Drive a page</a>
+    <a href="#mcp"><span class="num">06</span> Connect an agent</a>
+    <a href="#api"><span class="num">07</span> The HTTP API</a>
+    <a href="#modes"><span class="num">08</span> Headless &amp; auth</a>
+    <a href="#security"><span class="num">09</span> Security model</a>
+    <a href="#reference"><span class="num">10</span> Command reference</a>
+    <a href="#help"><span class="num">11</span> Troubleshoot</a>
+    <a href="#next"><span class="num">12</span> Next steps</a>
+  </aside>
+
+  <main>
+
+  <!-- 01 -->
+  <section class="block" id="why">
+    <div class="sec-head"><span class="sec-num">01</span><h2>What PinchTab actually is</h2></div>
+    <p class="lead">PinchTab is an open-source, standalone HTTP server that gives AI agents direct control over Chrome. One small Go binary turns a real browser into something an agent can navigate, read, and act on — over a CLI, a plain HTTP API, or MCP.</p>
+    <p>Most "let an LLM use a browser" setups are heavy: a framework, a headless driver, and screenshots piped back as images that burn through tokens. PinchTab takes the lean path. It describes each page as an <strong>accessibility tree with stable element references</strong> — <code class="ic">e0</code>, <code class="ic">e1</code>, <code class="ic">e2</code> — instead of pixel coordinates, and lets the agent act on those refs.</p>
+    <ul>
+      <li><strong>Token-efficient</strong> — a page is ~800 tokens of structured text, not a screenshot (the docs cite roughly 5–13× cheaper).</li>
+      <li><strong>Accessibility-first</strong> — agents click <code class="ic">e5</code>, not brittle x/y coordinates that break on every layout shift.</li>
+      <li><strong>Self-contained</strong> — a single ~15&nbsp;MB binary. No Node, no Python, no Selenium grid.</li>
+      <li><strong>Local-first</strong> — binds to <code class="ic">127.0.0.1</code> by default and won't roam the public web until you allow it.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>PinchTab is built for <b>one operator on a managed machine</b> — your laptop, a Raspberry Pi, a container. It is explicitly <b>not</b> a turnkey, internet-facing browser service. We come back to that in §09.</p></div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="concepts">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Five concepts, then everything reads the same</h2></div>
+    <p class="lead">Learn these five nouns once and the CLI, the HTTP API, and the MCP tools all line up the same way.</p>
+    <div class="cards">
+      <div class="card"><div class="ix">core / server</div><h4>Server</h4><p>The control plane: profiles, instances, routing, dashboard. One per machine. <code class="ic">pinchtab server</code>.</p></div>
+      <div class="card"><div class="ix">core / instance</div><h4>Instance</h4><p>A running Chrome process. Exactly one profile per instance. Start it headless or headed.</p></div>
+      <div class="card"><div class="ix">core / profile</div><h4>Profile</h4><p>Persistent browser state — cookies, history, local storage. Reuse it to stay logged in.</p></div>
+      <div class="card"><div class="ix">core / tab</div><h4>Tab</h4><p>A single page inside an instance. Snapshots and actions always target a tab.</p></div>
+      <div class="card"><div class="ix">core / bridge</div><h4>Bridge</h4><p>A lean single-instance runtime that sits behind managed instances. <code class="ic">pinchtab bridge</code>.</p></div>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>For a quick one-off on your own machine you barely touch these — the CLI picks sensible defaults. They start to matter when you run <b>several browsers in parallel</b> or go remote.</p></div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="install">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Install it</h2></div>
+    <p class="lead">Pick one route. Every method drops the same single binary onto your <code class="ic">PATH</code>.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># macOS / Linux — install script</span>
+<span class="tok-k">curl</span> <span class="tok-f">-fsSL</span> https://pinchtab.com/install.sh <span class="tok-p">|</span> <span class="tok-k">bash</span>
+
+<span class="tok-c"># Homebrew</span>
+<span class="tok-k">brew</span> install pinchtab/tap/pinchtab
+
+<span class="tok-c"># npm (global)</span>
+<span class="tok-k">npm</span> install <span class="tok-f">-g</span> pinchtab</code></pre>
+    </div>
+    <p>Prefer a container? The image binds to loopback and keeps state in a volume:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Docker</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">docker</span> run <span class="tok-f">-d</span> <span class="tok-f">\</span>
+  <span class="tok-f">--name</span> pinchtab <span class="tok-f">\</span>
+  <span class="tok-f">-p</span> <span class="tok-n">127.0.0.1:9867:9867</span> <span class="tok-f">\</span>
+  <span class="tok-f">-v</span> pinchtab-data:/data <span class="tok-f">\</span>
+  <span class="tok-f">--shm-size</span><span class="tok-p">=</span><span class="tok-n">2g</span> <span class="tok-f">\</span>
+  pinchtab/pinchtab</code></pre>
+    </div>
+    <p>Confirm it landed:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> <span class="tok-f">--help</span>     <span class="tok-c"># prints the command list → it's on your PATH</span></code></pre>
+    </div>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Piping a script into <code class="ic">bash</code>?</b> If that makes you nervous (it should make everyone a little nervous), read <code class="ic">install.sh</code> first, or just use Homebrew / npm instead — same binary, package-manager hygiene.</p></div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="server">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Start the server</h2></div>
+    <p class="lead">Three ways to run it. For everyday use, install it as a background daemon once and forget it's there.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>daemon install</td><td>Register the managed background service</td><td>One-time setup</td></tr>
+          <tr><td>daemon</td><td>Run the background daemon (survives your shell)</td><td>Daily use</td></tr>
+          <tr><td>server</td><td>Run server + dashboard in the foreground, logs live</td><td>First run / debugging</td></tr>
+          <tr><td>bridge</td><td>Single-instance runtime</td><td>Embedding / managed</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> daemon install   <span class="tok-c"># one-time: register the service</span>
+<span class="tok-k">pinchtab</span> daemon           <span class="tok-c"># start it (backgrounds, persists)</span>
+
+<span class="tok-c"># …or watch the logs live in your terminal instead:</span>
+<span class="tok-k">pinchtab</span> server           <span class="tok-c"># foreground, ctrl-C to stop</span></code></pre>
+    </div>
+    <p>Either way it now listens on <code class="ic">http://127.0.0.1:9867</code> — that single port serves both the HTTP API and the dashboard.</p>
+    <div class="callout"><span class="ico">▎i</span><p><b>Server vs bridge.</b> <code class="ic">server</code> is the full control plane (many instances + dashboard); <code class="ic">bridge</code> is a single-instance runtime for when something else is doing the orchestrating. Most people just run the daemon, which manages a server for you.</p></div>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="cli">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Drive a page from the CLI</h2></div>
+    <p class="lead">The fastest way to feel how PinchTab works — and it's the exact loop your agent will run later. It never changes: <strong>navigate → snapshot → act</strong>.</p>
+
+    <h3>1 · Navigate</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># open a tab, navigate, print a snapshot when it loads</span>
+<span class="tok-k">pinchtab</span> nav https://example.com <span class="tok-f">--snap</span>
+
+<span class="tok-c"># shortcut: navigate + snapshot in one verb</span>
+<span class="tok-k">pinchtab</span> quick https://example.com</code></pre>
+    </div>
+
+    <h3>2 · Snapshot — see the page the way the agent does</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> snap <span class="tok-f">-i</span> <span class="tok-f">-c</span>   <span class="tok-c"># interactive elements only, copied to clipboard</span>
+<span class="tok-c"># →</span>
+<span class="tok-c"># e0  link     "More information..."</span>
+<span class="tok-c"># e1  button   "Accept"</span>
+<span class="tok-c"># e2  textbox  "Search"</span></code></pre>
+    </div>
+    <p>Every element gets a <strong>stable ref</strong> — <code class="ic">e0</code>, <code class="ic">e1</code>, <code class="ic">e2</code>. Those refs are the handles you act on, and they survive re-renders far better than CSS selectors or screen coordinates.</p>
+
+    <h3>3 · Act</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> click e1                 <span class="tok-c"># click a ref</span>
+<span class="tok-k">pinchtab</span> fill e2 <span class="tok-s">"pinchtab"</span>       <span class="tok-c"># set an input's value directly</span>
+<span class="tok-k">pinchtab</span> type e2 <span class="tok-s">"pinchtab"</span>       <span class="tok-c"># type it key-by-key (fires key events)</span>
+<span class="tok-k">pinchtab</span> press Enter             <span class="tok-c"># send a key</span>
+<span class="tok-k">pinchtab</span> text                    <span class="tok-c"># extract the page's readable text</span></code></pre>
+    </div>
+    <p><strong>fill vs type:</strong> <code class="ic">fill</code> sets the value in one shot (fast, ideal for forms); <code class="ic">type</code> emits real keystroke events — reach for it when a field reacts to each character (autocomplete, validation as-you-type).</p>
+    <div class="callout"><span class="ico">▎i</span><p>Add <code class="ic">--json</code> to any command for machine-readable output, and <code class="ic">--tab &lt;id&gt;</code> to target a specific tab when an instance has more than one. <code class="ic">pinchtab tab</code> lists them; <code class="ic">pinchtab tab new &lt;url&gt;</code> opens another.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="mcp">
+    <div class="sec-head"><span class="sec-num">06</span><h2>Connect your AI agent (MCP)</h2></div>
+    <p class="lead">This is the payoff. PinchTab speaks the <strong>Model Context Protocol</strong>, so any MCP-aware agent — Claude, Cursor, VS&nbsp;Code + Copilot, or your own — gets the whole browser as a set of callable tools.</p>
+    <p>Start the stdio MCP server (after the daemon/server is already up):</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> mcp   <span class="tok-c"># speaks MCP over stdio</span></code></pre>
+    </div>
+    <p>Then register it with your client. For Claude Desktop, add this to its MCP config:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">{ }<b>claude_desktop_config.json</b></span><button class="copy">copy</button></div>
+<pre><code>{
+  <span class="tok-s">"mcpServers"</span>: {
+    <span class="tok-s">"pinchtab"</span>: {
+      <span class="tok-s">"command"</span>: <span class="tok-s">"pinchtab"</span>,
+      <span class="tok-s">"args"</span>: [<span class="tok-s">"mcp"</span>]
+    }
+  }
+}</code></pre>
+    </div>
+    <p>Cursor uses the same shape; VS&nbsp;Code + Copilot adds <code class="ic">"type": "stdio"</code>. To point an agent at a <strong>remote</strong> PinchTab, pass the address and authenticate with a token:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">export</span> PINCHTAB_TOKEN<span class="tok-p">=</span>…                       <span class="tok-c"># set on the client</span>
+<span class="tok-k">pinchtab</span> <span class="tok-f">--server</span> http://remote-host:9867 mcp</code></pre>
+    </div>
+    <p>Once connected, the agent sees roughly <strong>34 tools</strong> (all prefixed <code class="ic">pinchtab_</code>), grouped like so:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Group</th><th>Tools (sample)</th></tr></thead>
+        <tbody>
+          <tr><td>navigation</td><td>navigate · snapshot · screenshot · get_text</td></tr>
+          <tr><td>interaction</td><td>click · type · press · hover · focus · select · scroll · fill</td></tr>
+          <tr><td>keyboard</td><td>keyboard_type · insert_text · keydown · keyup</td></tr>
+          <tr><td>content</td><td>eval · pdf · find</td></tr>
+          <tr><td>tabs</td><td>list_tabs · close_tab · health · cookies · connect_profile</td></tr>
+          <tr><td>wait</td><td>wait · wait_for_selector · wait_for_text · wait_for_url · wait_for_load</td></tr>
+          <tr><td>network</td><td>network · network_detail · network_clear</td></tr>
+          <tr><td>dialog</td><td>dialog</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>The agent runs the same loop you just did by hand: call <code class="ic">pinchtab_snapshot</code> to learn the refs, then <code class="ic">pinchtab_click</code> / <code class="ic">pinchtab_fill</code> with a ref or selector. <b>Navigate → snapshot → act</b>, on autopilot.</p></div>
+  </section>
+
+  <!-- 07 -->
+  <section class="block" id="api">
+    <div class="sec-head"><span class="sec-num">07</span><h2>The HTTP API, by hand</h2></div>
+    <p class="lead">Prefer to script it yourself? Everything is plain HTTP + JSON on <code class="ic">localhost:9867</code>. Here is the whole loop with <code class="ic">curl</code> and <code class="ic">jq</code> — profile → instance → tab → snapshot → action.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>drive.sh</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># 1 — create a profile (persistent cookies / storage)</span>
+PROF<span class="tok-p">=</span><span class="tok-p">$(</span><span class="tok-k">curl</span> <span class="tok-f">-s</span> <span class="tok-f">-X</span> POST http://localhost:9867/profiles <span class="tok-f">\</span>
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-d</span> <span class="tok-s">'{"name":"work"}'</span> <span class="tok-p">|</span> <span class="tok-k">jq</span> <span class="tok-f">-r</span> <span class="tok-s">'.id'</span><span class="tok-p">)</span>
+
+<span class="tok-c"># 2 — start a Chrome instance on that profile</span>
+INST<span class="tok-p">=</span><span class="tok-p">$(</span><span class="tok-k">curl</span> <span class="tok-f">-s</span> <span class="tok-f">-X</span> POST http://localhost:9867/instances/start <span class="tok-f">\</span>
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-d</span> <span class="tok-s">"{\"profileId\":\"$PROF\",\"mode\":\"headless\"}"</span> <span class="tok-p">|</span> <span class="tok-k">jq</span> <span class="tok-f">-r</span> <span class="tok-s">'.id'</span><span class="tok-p">)</span>
+
+<span class="tok-c"># 3 — open a tab</span>
+TAB<span class="tok-p">=</span><span class="tok-p">$(</span><span class="tok-k">curl</span> <span class="tok-f">-s</span> <span class="tok-f">-X</span> POST http://localhost:9867/instances/<span class="tok-p">$</span>INST/tabs/open <span class="tok-f">\</span>
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-d</span> <span class="tok-s">'{"url":"https://example.com"}'</span> <span class="tok-p">|</span> <span class="tok-k">jq</span> <span class="tok-f">-r</span> <span class="tok-s">'.tabId'</span><span class="tok-p">)</span>
+
+<span class="tok-c"># 4 — snapshot the interactive elements</span>
+<span class="tok-k">curl</span> <span class="tok-s">"http://localhost:9867/tabs/$TAB/snapshot?filter=interactive"</span>
+
+<span class="tok-c"># 5 — act on a ref</span>
+<span class="tok-k">curl</span> <span class="tok-f">-X</span> POST <span class="tok-s">"http://localhost:9867/tabs/$TAB/action"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-d</span> <span class="tok-s">'{"kind":"click","ref":"e5"}'</span></code></pre>
+    </div>
+    <p>The CLI is just a thin client over exactly these endpoints — anything you can do with <code class="ic">pinchtab …</code> you can do with a <code class="ic">curl</code>.</p>
+  </section>
+
+  <!-- 08 -->
+  <section class="block" id="modes">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Headless, headed &amp; staying logged in</h2></div>
+    <p class="lead">Two modes, and one good reason to care about profiles.</p>
+    <ul>
+      <li><strong>Headless</strong> (<code class="ic">"mode":"headless"</code>) — no visible window. Fast and cheap; perfect for servers, CI, and a Raspberry Pi.</li>
+      <li><strong>Headed</strong> (<code class="ic">"mode":"headed"</code>) — a real Chrome window you can watch. Great for debugging an agent, or doing a first interactive login.</li>
+    </ul>
+    <p>Here's the trick for authenticated automation: log in <strong>once</strong> in a headed instance. Because the profile persists cookies and storage, every later instance on that profile — even headless ones — is already signed in. No credentials ever go into your agent's prompts.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># headed, so you can log in by hand the first time</span>
+<span class="tok-k">curl</span> <span class="tok-f">-s</span> <span class="tok-f">-X</span> POST http://localhost:9867/instances/start <span class="tok-f">\</span>
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> <span class="tok-f">\</span>
+  <span class="tok-f">-d</span> <span class="tok-s">'{"profileId":"work","mode":"headed"}'</span>
+
+<span class="tok-c"># …log in once in the window, then close it.</span>
+<span class="tok-c"># later runs reuse profile "work" — already authenticated, headless.</span></code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>On <b>ARM64</b> (Apple Silicon, Raspberry Pi) PinchTab detects a native Chromium automatically — the same binary and the same commands just work.</p></div>
+  </section>
+
+  <!-- 09 -->
+  <section class="block" id="security">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Security: local-first by design</h2></div>
+    <p class="lead">PinchTab hands real browser control to anything that can reach it. Treat the API, dashboard, and MCP server as <strong>privileged operator surfaces</strong> — not public endpoints. The good news: the defaults are locked down.</p>
+    <ul>
+      <li><strong>Loopback only</strong> — binds <code class="ic">127.0.0.1</code>, so nothing off-box can reach it out of the gate.</li>
+      <li><strong>IDPI on</strong> — by default the agent may only browse <em>locally hosted</em> sites; it can't wander the public web until you explicitly allow hosts.</li>
+      <li><strong>Sensitive endpoints off</strong> — privileged endpoint families are disabled by default.</li>
+      <li><strong>Attach off</strong> — hooking into arbitrary existing Chrome processes is disabled by default.</li>
+      <li><strong>Cookies</strong> — the <code class="ic">Secure</code> flag is applied on HTTPS.</li>
+    </ul>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Do not expose it to the internet.</b> The dashboard, HTTP API, and MCP server are full control of a browser running <em>as you</em>. PinchTab is explicitly not a turnkey internet-facing service. If you must go remote, put it behind a VPN or tunnel and require <code class="ic">PINCHTAB_TOKEN</code>.</p></div>
+    <p>Inspect and adjust the posture interactively:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> security          <span class="tok-c"># interactive security overview</span>
+<span class="tok-k">pinchtab</span> config get        <span class="tok-c"># view current configuration</span>
+<span class="tok-k">pinchtab</span> config set …      <span class="tok-c"># change a setting (e.g. allow a host)</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="block" id="reference">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Command reference</h2></div>
+    <p class="lead">The verbs you'll actually reach for, grouped. Append <code class="ic">--help</code> to any of them for the full flag list.</p>
+    <h3>Browser control</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>nav &lt;url&gt;</td><td>Open a tab and navigate to it</td></tr>
+          <tr><td>quick &lt;url&gt;</td><td>Navigate, then snapshot in one step</td></tr>
+          <tr><td>snap -i -c</td><td>Accessibility snapshot (<code class="ic">-i</code> interactive only, <code class="ic">-c</code> copy)</td></tr>
+          <tr><td>text</td><td>Extract page text (<code class="ic">--full</code>, <code class="ic">--raw</code>, <code class="ic">--frame</code>)</td></tr>
+          <tr><td>find &lt;query&gt;</td><td>Semantic search for an element</td></tr>
+          <tr><td>click &lt;ref&gt;</td><td>Click an element by ref or selector</td></tr>
+          <tr><td>fill &lt;ref&gt; &lt;text&gt;</td><td>Set a field's value directly</td></tr>
+          <tr><td>type &lt;ref&gt; &lt;text&gt;</td><td>Type via real key events</td></tr>
+          <tr><td>press &lt;key&gt;</td><td>Press a key (Enter, Tab, …)</td></tr>
+          <tr><td>mouse / drag</td><td>Low-level pointer control</td></tr>
+          <tr><td>screenshot</td><td>Capture the page (<code class="ic">-s</code> selector, <code class="ic">--css-1x</code>)</td></tr>
+          <tr><td>pdf -o &lt;file&gt;</td><td>Export the page to PDF</td></tr>
+          <tr><td>wait</td><td>Wait for selector / text / url / js / time</td></tr>
+          <tr><td>network / console / errors</td><td>Inspect requests and browser logs</td></tr>
+          <tr><td>tab / tab new / tab close</td><td>List, open, and close tabs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Server &amp; admin</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>server</td><td>Full server + dashboard (foreground)</td></tr>
+          <tr><td>daemon / daemon install</td><td>Managed background service</td></tr>
+          <tr><td>bridge</td><td>Single-instance runtime</td></tr>
+          <tr><td>mcp</td><td>stdio MCP server for agents</td></tr>
+          <tr><td>config (get / set / patch)</td><td>View and change configuration</td></tr>
+          <tr><td>security</td><td>Interactive security overview</td></tr>
+          <tr><td>completion &lt;shell&gt;</td><td>Generate shell completions</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Global flags</strong> work on most commands: <code class="ic">--server &lt;addr&gt;</code> target a remote server, <code class="ic">--agent-id &lt;name&gt;</code> tag actions in the logs, <code class="ic">--json</code> structured output, <code class="ic">--tab &lt;id&gt;</code> target a tab.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>shell completions</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">pinchtab</span> completion zsh  <span class="tok-p">&gt;</span> <span class="tok-s">"${fpath[1]}/_pinchtab"</span>
+<span class="tok-k">pinchtab</span> completion bash <span class="tok-p">&gt;</span> /etc/bash_completion.d/pinchtab
+<span class="tok-k">pinchtab</span> completion fish <span class="tok-p">&gt;</span> ~/.config/fish/completions/pinchtab.fish</code></pre>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="block" id="help">
+    <div class="sec-head"><span class="sec-num">11</span><h2>Troubleshooting</h2></div>
+    <div class="cards">
+      <div class="card"><div class="ix">net / refused</div><h4>Connection refused</h4><p>Nothing is listening on <code class="ic">:9867</code>. The server/daemon isn't running — start <code class="ic">pinchtab daemon</code> (or <code class="ic">server</code>).</p></div>
+      <div class="card"><div class="ix">web / blocked</div><h4>Public URL won't open</h4><p>That's IDPI doing its job. Allow the host in <code class="ic">config</code> if you really mean to leave localhost.</p></div>
+      <div class="card"><div class="ix">ref / stale</div><h4>A ref stopped working</h4><p>Refs like <code class="ic">e5</code> are per-snapshot. The page re-rendered — take a fresh <code class="ic">snap</code> and use the new refs.</p></div>
+      <div class="card"><div class="ix">auth / 401</div><h4>Remote calls rejected</h4><p>Set <code class="ic">PINCHTAB_TOKEN</code> on the client so it matches the remote server's token.</p></div>
+      <div class="card"><div class="ix">cmd / path</div><h4>command not found</h4><p>The binary isn't on your <code class="ic">PATH</code>. Re-check the install step and restart your shell.</p></div>
+      <div class="card"><div class="ix">arm / chromium</div><h4>No browser on a Pi</h4><p>PinchTab auto-detects Chromium on ARM64 — install Chromium via your package manager if it's missing.</p></div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="block" id="next">
+    <div class="sec-head"><span class="sec-num">12</span><h2>Where to go next</h2></div>
+    <p>You can now install PinchTab, run it, drive a page by hand, and wire it into an agent. From here:</p>
+    <ul>
+      <li>Hand the loop to your agent over <strong>MCP</strong> and let it run navigate → snapshot → act itself (§06).</li>
+      <li>Script multi-step flows over the <strong>HTTP API</strong>, or fan out across several instances for parallel automation (§07).</li>
+      <li>Keep a <strong>persistent profile</strong> for authenticated sites — log in once, automate forever (§08).</li>
+      <li>Read the full docs and every flag at <a class="inline" href="https://pinchtab.com/docs" target="_blank" rel="noopener">pinchtab.com/docs</a>.</li>
+    </ul>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+<div class="wrap">
+  <div class="foot-grid">
+    <div>
+      <h4>Source</h4>
+      <a href="https://github.com/pinchtab/pinchtab" target="_blank" rel="noopener">github.com/pinchtab/pinchtab ↗</a>
+    </div>
+    <div>
+      <h4>Docs</h4>
+      <a href="https://pinchtab.com/docs" target="_blank" rel="noopener">pinchtab.com/docs ↗</a>
+      <a href="https://pinchtab.com/docs/mcp" target="_blank" rel="noopener">Using PinchTab with agents (MCP) ↗</a>
+    </div>
+    <div>
+      <h4>Install</h4>
+      <a href="https://pinchtab.com/install.sh" target="_blank" rel="noopener">pinchtab.com/install.sh ↗</a>
+      <a href="https://github.com/pinchtab/pinchtab" target="_blank" rel="noopener">brew · npm · docker ↗</a>
+    </div>
+  </div>
+  <p class="foot-note">A community field guide — not affiliated with PinchTab. Commands, endpoints, and the MCP tool list reflect PinchTab as of 2026 and may evolve; check the official docs if anything drifts. PinchTab is local-first by design — keep it off the public internet.</p>
+</div>
+</footer>
+
+<script>
+/* ---- copy buttons ---- */
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('pre code');
+    navigator.clipboard.writeText(code.innerText.trim()).then(()=>{
+      const t=btn.textContent;btn.textContent='copied ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+/* ---- scroll-spy nav ---- */
+const links=[...document.querySelectorAll('aside.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id); if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section.block').forEach(s=>spy.observe(s));
+
+/* ---- hero terminal typewriter ---- */
+(function(){
+  const el=document.getElementById('term');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines=[
+    {t:'$ ',c:'pinchtab daemon',cls:'cmd'},
+    {t:'',c:'server listening on 127.0.0.1:9867  ✓',cls:'ok',pre:true},
+    {t:'$ ',c:'pinchtab nav https://example.com --snap',cls:'cmd'},
+    {t:'',c:'e0 link   e1 button   e2 textbox  …',cls:'out',pre:true},
+    {t:'$ ',c:'pinchtab click e1',cls:'cmd'},
+    {t:'',c:'> clicked — your agent drives the page. 🖱️',cls:'out',pre:true},
+  ];
+  if(reduce){
+    el.innerHTML=lines.map(l=>`<div class="ln"><span class="pr">${l.t}</span><span class="${l.cls}">${l.c}</span></div>`).join('');
+    return;
+  }
+  let li=0;
+  function nextLine(){
+    if(li>=lines.length){
+      const cur=document.createElement('span');cur.className='cursor';
+      el.lastChild.appendChild(cur);return;
+    }
+    const l=lines[li++];
+    const row=document.createElement('div');row.className='ln';
+    row.innerHTML=`<span class="pr">${l.t}</span><span class="${l.cls}"></span>`;
+    el.appendChild(row);
+    const target=row.querySelector('span:last-child');
+    if(l.pre){ // print instantly (program output)
+      let i=0;const speed=10;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,speed);else setTimeout(nextLine,260);
+      })();
+    }else{
+      let i=0;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,28);else setTimeout(nextLine,360);
+      })();
+    }
+  }
+  nextLine();
+})();
+</script>
+</body>
+</html>
