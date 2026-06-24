@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes Agent across two Macs — a field guide (M1 + M2)</title>
+<meta name="description" content="Run Nous Research's Hermes Agent across an M1 and M2 MacBook: install it, stand up a local LLM, wire the two Macs together (LAN server, exo pooling, or twin agents), and put it to work.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b09;
+  --bg-2:#0a0f0c;
+  --surface:#0e1411;
+  --surface-2:#131b16;
+  --border:rgba(74,230,164,.12);
+  --border-strong:rgba(74,230,164,.26);
+  --text:#eef4f0;
+  --ink:#c6d2cb;
+  --muted:#96a89e;
+  --faint:#5e6f66;
+  --accent:#3ae6a4;
+  --accent-bright:#93f5cf;
+  --warn:#ff7a59;
+  --grid:rgba(74,230,164,.045);
+  --disp:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Hanken Grotesk',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:var(--body);line-height:1.6;font-size:16px;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+
+/* ---------- fixed atmosphere layers ---------- */
+.bg-layer{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-grid{
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 100% 70% at 50% 0%,#000 25%,transparent 78%);
+  mask-image:radial-gradient(ellipse 100% 70% at 50% 0%,#000 25%,transparent 78%);
+}
+.bg-glow{
+  background:
+    radial-gradient(50% 38% at 12% 0%,rgba(74,230,164,.16),transparent 70%),
+    radial-gradient(46% 34% at 92% 4%,rgba(255,122,89,.11),transparent 72%);
+}
+.bg-noise{opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px clamp(16px,4vw,40px);
+  background:rgba(7,11,9,.72);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none}
+.logo{width:26px;height:26px;border-radius:7px;
+  background:linear-gradient(135deg,var(--accent),#0d8f63);
+  box-shadow:0 0 16px rgba(74,230,164,.5);}
+.brand b{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text);letter-spacing:-.01em}
+.brand b span{color:var(--accent)}
+.nav{display:flex;gap:26px}
+.nav a{font-family:var(--mono);font-size:12.5px;color:var(--muted);text-decoration:none;transition:color .2s}
+.nav a:hover{color:var(--accent)}
+@media(max-width:780px){.nav{display:none}}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px);position:relative;z-index:1}
+.shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+@media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+/* ---------- TOC ---------- */
+.toc{position:sticky;top:96px;align-self:start}
+.toc-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+.toc a{
+  display:flex;gap:10px;align-items:baseline;
+  font-family:var(--mono);font-size:12.5px;color:var(--muted);
+  text-decoration:none;padding:6px 0 6px 11px;border-left:2px solid transparent;
+  transition:color .2s,border-color .2s;
+}
+.toc a .n{color:var(--faint);font-size:11px}
+.toc a:hover{color:var(--text)}
+.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+.toc a.active .n{color:var(--accent)}
+@media(max-width:920px){.toc{display:none}}
+
+/* ---------- hero ---------- */
+.hero{padding:118px 0 30px}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent-bright);background:rgba(74,230,164,.07);
+  border:1px solid var(--border-strong);border-radius:100px;padding:6px 14px;
+}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+h1{
+  font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:1.0;
+  font-size:clamp(2.7rem,8.2vw,6.4rem);margin:26px 0 0;
+}
+h1 .glow{color:var(--accent);font-style:italic;text-shadow:0 0 32px rgba(74,230,164,.55)}
+.sub{max-width:640px;color:var(--muted);font-size:clamp(1.02rem,2.2vw,1.22rem);margin:24px 0 0}
+.sub b{color:var(--text);font-weight:700}
+
+/* ---------- terminal ---------- */
+.term{
+  margin:36px 0 0;max-width:680px;
+  background:#05080610;background:linear-gradient(180deg,#080d0b,#060a08);
+  border:1px solid var(--border-strong);border-radius:12px;overflow:hidden;
+  box-shadow:0 30px 80px -40px rgba(0,0,0,.9);
+}
+.term-head{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--border)}
+.tl{width:11px;height:11px;border-radius:50%}
+.tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+.term-title{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+.term-body{padding:16px 18px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:172px}
+.term-body .line{white-space:pre-wrap;word-break:break-word}
+.term-body .pr{color:var(--accent)}
+.term-body .ok{color:var(--accent-bright)}
+.term-body .cm{color:var(--faint)}
+.term-body .ag{color:var(--text)}
+.cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{0%,50%{opacity:1}50.01%,100%{opacity:0}}
+
+/* ---------- stat chips ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:40px 0 8px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+.stat .num{font-family:var(--disp);font-weight:800;font-size:clamp(1.9rem,4vw,2.5rem);color:var(--accent);line-height:1}
+.stat .lab{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:9px;letter-spacing:.04em}
+
+/* ---------- reveal anim ---------- */
+.rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- sections ---------- */
+.block{border-top:1px solid var(--border);padding:54px 0;scroll-margin-top:90px}
+.sec-head{display:flex;align-items:baseline;gap:15px;margin-bottom:8px}
+.sec-head .sn{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:500}
+h2{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;line-height:1.05;font-size:clamp(1.7rem,4vw,2.7rem);margin:0}
+h3{font-family:var(--disp);font-weight:600;letter-spacing:-.01em;font-size:1.3rem;margin:38px 0 12px}
+h4{font-family:var(--disp);font-weight:600;font-size:1.05rem;margin:0 0 6px}
+p,li{color:var(--ink);max-width:66ch}
+p.lead{color:var(--muted);font-size:1.08rem;max-width:66ch}
+strong{color:var(--text);font-weight:700}
+a.ln{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong);transition:border-color .2s}
+a.ln:hover{border-bottom-color:var(--accent)}
+ul,ol{padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--accent)}
+code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:1.5px 6px;color:var(--accent-bright)}
+.step-label{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:34px 0 2px}
+
+/* ---------- code block ---------- */
+.code{margin:18px 0;border:1px solid var(--border);border-radius:11px;overflow:hidden;background:#060a08}
+.code-head{display:flex;align-items:center;gap:9px;padding:9px 13px;background:rgba(74,230,164,.05);border-bottom:1px solid var(--border)}
+.code-head .ci{color:var(--accent);font-family:var(--mono);font-size:12px}
+.code-name{font-family:var(--mono);font-size:12px;color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{font-family:var(--mono);font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border-strong);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.copy:hover{color:var(--text);border-color:var(--accent)}
+.copy.done{color:#7af0b0;border-color:#7af0b0}
+pre{margin:0;padding:15px 16px;overflow-x:auto}
+pre code{font-family:var(--mono);font-size:13px;line-height:1.7;color:#d4e0d9}
+.tok-c{color:var(--faint);font-style:italic}
+.tok-k{color:var(--accent)}
+.tok-s{color:#f0c987}
+.tok-f{color:var(--accent-bright)}
+.tok-n{color:#c9b3ff}
+.tok-p{color:var(--muted)}
+
+/* ---------- callout ---------- */
+.callout{display:flex;gap:13px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:16px 18px;margin:20px 0}
+.callout .ico{font-family:var(--mono);color:var(--accent);font-weight:700;flex-shrink:0}
+.callout p{margin:0;color:var(--ink);max-width:none}
+.callout.warn{border-left-color:var(--warn)}
+.callout.warn .ico{color:var(--warn)}
+
+/* ---------- table ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:11px;margin:20px 0}
+table{border-collapse:collapse;width:100%;min-width:520px}
+th,td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);background:rgba(74,230,164,.05)}
+td{color:var(--ink);font-size:.95rem}
+td:first-child{font-family:var(--mono);font-size:.86rem;color:var(--text);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(74,230,164,.03)}
+
+/* ---------- cards ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:15px;margin:22px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:19px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+.card .idx{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:11px}
+.card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--border);margin-top:30px;padding:46px 0 60px}
+.foot-cols{display:flex;flex-wrap:wrap;gap:40px}
+.foot-col h5{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 13px}
+.foot-col a{display:block;color:var(--muted);text-decoration:none;font-size:.92rem;margin:7px 0;transition:color .2s}
+.foot-col a:hover{color:var(--accent)}
+.foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);max-width:70ch;margin:34px 0 0;line-height:1.7}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;scroll-behavior:auto!important}
+  .rv{opacity:1;transform:none}
+  .cursor{display:none}
+}
+</style>
+</head>
+<body>
+<div class="bg-layer bg-grid"></div>
+<div class="bg-layer bg-glow"></div>
+<div class="bg-layer bg-noise"></div>
+
+<header class="topbar">
+  <a class="brand" href="#top"><span class="logo"></span><b>hermes<span>/</span>2macs</b></a>
+  <nav class="nav">
+    <a href="#overview">Overview</a>
+    <a href="#install">Install</a>
+    <a href="#lan">Topologies</a>
+    <a href="#use">Uses</a>
+    <a href="#troubleshoot">Fixes</a>
+  </nav>
+</header>
+
+<div class="wrap" id="top">
+<section class="hero">
+  <span class="eyebrow rv"><span class="dot"></span>Field guide · local agents on apple silicon</span>
+  <h1 class="rv" style="animation-delay:.05s">Run <span class="glow">Hermes</span><br>across two Macs.</h1>
+  <p class="sub rv" style="animation-delay:.12s">Nous Research's <b>Hermes Agent</b> is a self-improving AI agent that lives on your own hardware. This guide wires an <b>M1</b> and an <b>M2</b> MacBook together — install it, run the model locally, pick a two-Mac layout, and put it to work. <b>No cloud, no API bill.</b></p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-head">
+      <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+      <span class="term-title">m1-air — hermes — zsh</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="num">2</div><div class="lab">// macs → one agent</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="num">40+</div><div class="lab">// built-in tools</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="num">$0</div><div class="lab">// cloud api cost</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="num">100%</div><div class="lab">// local &amp; private</div></div>
+  </div>
+</section>
+
+<div class="shell">
+  <aside class="toc">
+    <div class="toc-label">Contents</div>
+    <a href="#overview"><span class="n">01</span> What it is</a>
+    <a href="#capabilities"><span class="n">02</span> Capabilities</a>
+    <a href="#plan"><span class="n">03</span> Plan your Macs</a>
+    <a href="#install"><span class="n">04</span> Install Hermes</a>
+    <a href="#model"><span class="n">05</span> Local model</a>
+    <a href="#lan"><span class="n">06</span> Shared brain (LAN)</a>
+    <a href="#pool"><span class="n">07</span> Pool with exo</a>
+    <a href="#independent"><span class="n">08</span> Two agents</a>
+    <a href="#use"><span class="n">09</span> What you can do</a>
+    <a href="#troubleshoot"><span class="n">10</span> Troubleshooting</a>
+  </aside>
+
+  <main>
+  <!-- 01 -->
+  <section class="block" id="overview">
+    <div class="sec-head"><span class="sn">01</span><h2>What Hermes Agent is</h2></div>
+    <p class="lead">Hermes Agent is an open-source, self-improving AI agent from Nous Research that runs on personal devices, a VPS, or serverless infra — and talks to whatever model you point it at.</p>
+    <p>Unlike a plain chatbot, it has a <strong>learning loop</strong>: it writes its own skills from experience, refines them as it uses them, and keeps <strong>persistent memory</strong> across sessions (with full-text search over past conversations). The practical upshot: the more you use it on a recurring task, the faster and more reliable it gets.</p>
+    <p>It is <strong>model-agnostic</strong>. It can call cloud models (Anthropic, OpenAI, OpenRouter's 200+, Nous Portal, NVIDIA NIM, and more) — but it can equally point at a <strong>local model running on your own Mac</strong> through any OpenAI-compatible endpoint. That last part is the whole game here: your M1 and M2 become both the brain <em>and</em> the host.</p>
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>The mental model.</strong> Hermes Agent = the <em>orchestrator</em> (tools, memory, skills, scheduling, messaging). A model server (llama.cpp / MLX / exo) = the <em>brain</em>. They speak over an OpenAI-compatible <code class="ic">/v1/chat/completions</code> URL — so the brain can live on the same Mac, the other Mac, or be spread across both.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="capabilities">
+    <div class="sec-head"><span class="sn">02</span><h2>What it can do out of the box</h2></div>
+    <p class="lead">The installer gives you a full terminal agent plus a stack of capabilities you'd normally bolt on yourself.</p>
+    <div class="cards">
+      <div class="card"><div class="idx">cap / tui</div><h4>Full terminal UI</h4><p>Multiline editing, slash-command autocomplete, conversation history, and streaming tool output.</p></div>
+      <div class="card"><div class="idx">cap / chat</div><h4>Message it anywhere</h4><p>Gateways for Telegram, Discord, Slack, WhatsApp, Signal, Email — not just the CLI.</p></div>
+      <div class="card"><div class="idx">cap / learn</div><h4>Learning loop</h4><p>Creates and self-improves skills from experience; periodic memory "nudges" keep context fresh.</p></div>
+      <div class="card"><div class="idx">cap / fork</div><h4>Parallel subagents</h4><p>Spawns isolated subagents to run concurrent workstreams without crosstalk.</p></div>
+      <div class="card"><div class="idx">cap / cron</div><h4>Scheduled automations</h4><p>A built-in scheduler runs unattended tasks — briefings, monitors, digests.</p></div>
+      <div class="card"><div class="idx">cap / tools</div><h4>40+ built-in tools</h4><p>Web browsing, image generation, code execution, and more — extensible via skills.</p></div>
+      <div class="card"><div class="idx">cap / deploy</div><h4>Many deploy targets</h4><p>Local, Docker, SSH, Singularity, Modal, Daytona — the same agent, many homes.</p></div>
+      <div class="card"><div class="idx">cap / models</div><h4>Model-agnostic</h4><p>50+ providers, OAuth or API key, or any custom OpenAI-compatible endpoint.</p></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="plan">
+    <div class="sec-head"><span class="sn">03</span><h2>Plan your two Macs</h2></div>
+    <p class="lead">Before any commands: decide which Mac is the <strong>engine</strong> (holds the model, does the token-crunching) and which is the <strong>cockpit</strong> (runs the agent, tools, and messaging). Unified memory is the deciding factor, not the chip generation.</p>
+
+    <h3>Reality-check your RAM</h3>
+    <p>A model has to fit in <strong>unified memory</strong> alongside its context window. Here's what's realistic per machine:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Unified memory</th><th>What's realistic</th></tr></thead>
+        <tbody>
+          <tr><td>8 GB</td><td>Best as a <strong>cockpit / client only</strong>, or tiny 1–3B models. Use llama.cpp with a quantized KV cache.</td></tr>
+          <tr><td>16 GB</td><td>Runs the recommended <strong>Qwen3.5-9B</strong> comfortably (~10–12 GB needed).</td></tr>
+          <tr><td>24–32 GB</td><td>9B with a big context, or a 30B-class model.</td></tr>
+          <tr><td>M1 + M2 pooled</td><td>A <strong>70B-class</strong> model that fits on neither Mac alone — see §07.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Suggested roles</h3>
+    <p>Put the heavier-RAM Mac on engine duty. If your M2 has more memory (common), it serves the model; the M1 stays light as the cockpit and messaging hub.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Role</th><th>Mac</th><th>Runs</th></tr></thead>
+        <tbody>
+          <tr><td>Engine</td><td>M2 (more RAM)</td><td>The model server — <code class="ic">llama-server</code> / MLX / exo node, bound to the LAN.</td></tr>
+          <tr><td>Cockpit</td><td>M1</td><td>Hermes Agent TUI + tools + <code class="ic">hermes gateway</code>; offloads thinking to the engine.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Three layouts follow, simplest to most ambitious: a <a class="ln" href="#lan">LAN shared brain</a> (§06), <a class="ln" href="#pool">pooling both Macs with exo</a> (§07), or <a class="ln" href="#independent">two fully independent agents</a> (§08).</p>
+
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>Requirements (per the docs):</strong> Apple Silicon (M1 or later), <strong>8 GB+</strong> unified memory, and a model context window of <strong>at least 64K</strong> for Hermes compatibility. Both Macs on the same network; Thunderbolt between them is a nice-to-have for §07.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="install">
+    <div class="sec-head"><span class="sn">04</span><h2>Install Hermes on both Macs</h2></div>
+    <p class="lead">One line. The installer bundles its own Python 3.11, Node.js, ripgrep, and ffmpeg, so it won't fight your system setup. Run this on <strong>each</strong> MacBook.</p>
+
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · run on M1 and M2</span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># installs hermes + its own python/node/ripgrep/ffmpeg</span>
+curl <span class="tok-f">-fsSL</span> <span class="tok-s">https://hermes-agent.nousresearch.com/install.sh</span> | bash
+
+<span class="tok-c"># reload your shell so the `hermes` command is on PATH</span>
+<span class="tok-k">source</span> ~/.zshrc
+
+<span class="tok-c"># launch the setup wizard (model, tools, personality)</span>
+hermes setup</code></pre>
+    </div>
+
+    <p>After setup, the everyday commands you'll reach for:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td>hermes</td><td>Start the interactive agent (the TUI).</td></tr>
+          <tr><td>hermes model</td><td>Choose your LLM provider / model — this is where you point at a local endpoint.</td></tr>
+          <tr><td>hermes tools</td><td>Enable or disable the built-in tools.</td></tr>
+          <tr><td>hermes gateway</td><td>Start the messaging gateway (Telegram, Discord, …).</td></tr>
+          <tr><td>hermes config set</td><td>Set individual config values from the shell.</td></tr>
+          <tr><td>hermes doctor</td><td>Diagnose a broken setup.</td></tr>
+          <tr><td>hermes update</td><td>Pull the latest version.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Config lives in <code class="ic">~/.hermes/</code>: API keys in <code class="ic">~/.hermes/.env</code>, model/provider settings in <code class="ic">~/.hermes/config.yaml</code>.</p>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="model">
+    <div class="sec-head"><span class="sn">05</span><h2>Stand up a local model</h2></div>
+    <p class="lead">The engine Mac needs an OpenAI-compatible server. Two good options on Apple Silicon — pick by what you optimise for.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Backend</th><th>Best at</th><th>First token</th><th>Generation</th></tr></thead>
+        <tbody>
+          <tr><td>llama.cpp</td><td>Low latency, tight RAM</td><td>~67 ms</td><td>~70 tok/s</td></tr>
+          <tr><td>MLX (omlx)</td><td>Sustained long output</td><td>~289 ms</td><td>~96 tok/s</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The recommended starter model is <strong>Qwen3.5-9B</strong> — strong reasoning, fits comfortably in 16 GB. We'll use llama.cpp for the concrete path because it's the most robust on memory-constrained Macs.</p>
+
+    <div class="step-label">Step 1 — install the server</div>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · engine Mac (M2)</span><button class="copy">copy</button></div>
+<pre><code>brew install llama.cpp
+brew install huggingface-cli
+
+<span class="tok-c"># ~5.3 GB on disk, needs ~10 GB unified memory to run</span>
+huggingface-cli download unsloth/Qwen3.5-9B-GGUF \
+  Qwen3.5-9B-Q4_K_M.gguf <span class="tok-f">--local-dir</span> ~/models</code></pre>
+    </div>
+
+    <div class="step-label">Step 2 — serve it on the network</div>
+    <p>The key flag is <code class="ic">--host 0.0.0.0</code>: it makes the server reachable from your <em>other</em> Mac, not just localhost. <code class="ic">-c 131072</code> gives a 128K context (well above Hermes's 64K floor).</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · engine Mac (M2)</span><button class="copy">copy</button></div>
+<pre><code>llama-server <span class="tok-f">-m</span> ~/models/Qwen3.5-9B-Q4_K_M.gguf \
+  <span class="tok-f">-ngl</span> <span class="tok-n">99</span> <span class="tok-c"># offload all layers to the Metal GPU</span> \
+  <span class="tok-f">-c</span> <span class="tok-n">131072</span> <span class="tok-c"># 128K context window</span> \
+  <span class="tok-f">-np</span> <span class="tok-n">1</span> <span class="tok-f">-fa</span> on \
+  <span class="tok-f">--cache-type-k</span> q4_0 <span class="tok-f">--cache-type-v</span> q4_0 <span class="tok-c"># quantize KV cache (~75% less RAM)</span> \
+  <span class="tok-f">--host</span> <span class="tok-n">0.0.0.0</span> <span class="tok-c"># &lt;-- expose to the LAN</span></code></pre>
+    </div>
+
+    <div class="step-label">Step 3 — confirm it answers</div>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · either Mac</span><button class="copy">copy</button></div>
+<pre><code>curl <span class="tok-f">-s</span> <span class="tok-s">http://localhost:8080/v1/chat/completions</span> \
+  <span class="tok-f">-H</span> <span class="tok-s">"Content-Type: application/json"</span> \
+  <span class="tok-f">-d</span> <span class="tok-s">'{"model":"Qwen3.5-9B-Q4_K_M.gguf",
+       "messages":[{"role":"user","content":"Hello!"}],
+       "max_tokens":50}'</span> | jq .choices[0].message.content</code></pre>
+    </div>
+
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>Prefer the GUI / faster generation?</strong> Install the MLX app from <a class="ln" href="https://omlx.ai" target="_blank" rel="noopener">omlx.ai ↗</a>, download <code class="ic">Qwen3.5-9B-mlx-lm-mxfp4</code>, and start its server (defaults to <code class="ic">http://127.0.0.1:8000</code>). Same OpenAI-compatible API — just a different port and model name.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="lan">
+    <div class="sec-head"><span class="sn">06</span><h2>Topology A — one shared brain over the LAN</h2></div>
+    <p class="lead">Recommended for most people. The M2 runs the model (§05). The M1 runs Hermes and simply points across the network at it. One agent, one memory, the heavy lifting on the bigger Mac.</p>
+
+    <div class="step-label">Step 1 — find the engine's address</div>
+    <p>On the M2, get its LAN IP (or just use its <code class="ic">.local</code> name, e.g. <code class="ic">m2-mbp.local</code>):</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · engine Mac (M2)</span><button class="copy">copy</button></div>
+<pre><code>ipconfig getifaddr en0 <span class="tok-c"># e.g. 192.168.1.42  (Wi-Fi)</span>
+scutil --get LocalHostName <span class="tok-c"># e.g. m2-mbp  → reachable as m2-mbp.local</span></code></pre>
+    </div>
+
+    <div class="step-label">Step 2 — point Hermes at it (on the M1)</div>
+    <p>Run <code class="ic">hermes model</code>, choose <strong>Custom endpoint</strong>, and give it the engine's URL and the model name:</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · cockpit Mac (M1)</span><button class="copy">copy</button></div>
+<pre><code>hermes model
+<span class="tok-c"># → choose "Custom endpoint"</span>
+<span class="tok-c"># Base URL:   http://m2-mbp.local:8080/v1   (or http://192.168.1.42:8080/v1)</span>
+<span class="tok-c"># Model name: Qwen3.5-9B-Q4_K_M.gguf</span>
+
+hermes <span class="tok-c"># start chatting — tokens are generated on the M2</span></code></pre>
+    </div>
+    <p>Hermes automatically detects local and LAN endpoints and relaxes its streaming timeouts, so slower local generation won't trip a timeout. If you ever need to force it (very large contexts), set it explicitly:</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">~/.hermes/.env · cockpit Mac (M1)</span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># seconds; default 120, auto-bumped to 1800 for localhost/LAN</span>
+HERMES_STREAM_READ_TIMEOUT=<span class="tok-n">1800</span></code></pre>
+    </div>
+    <div class="callout warn">
+      <span class="ico">▎!</span>
+      <p><strong>Trust the network you do this on.</strong> <code class="ic">--host 0.0.0.0</code> exposes the model server to everyone on the LAN with no auth. Fine on your home network; on shared/public Wi-Fi, keep it on <code class="ic">127.0.0.1</code> and tunnel over SSH instead (<code class="ic">ssh -L 8080:localhost:8080 you@m2-mbp.local</code>).</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="block" id="pool">
+    <div class="sec-head"><span class="sn">07</span><h2>Topology B — pool both Macs with exo</h2></div>
+    <p class="lead">When you want a model <strong>bigger than either Mac can hold alone</strong> (a 70B-class model), <a class="ln" href="https://github.com/exo-explore/exo" target="_blank" rel="noopener">exo ↗</a> shards it across the M1 and M2 and exposes a single OpenAI-compatible endpoint. Hermes then talks to the cluster as if it were one machine.</p>
+
+    <div class="step-label">Step 1 — install exo on both Macs</div>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · run on M1 and M2</span><button class="copy">copy</button></div>
+<pre><code>brew install --cask exo
+<span class="tok-c"># or grab the app from https://assets.exolabs.net/EXO-latest.dmg</span></code></pre>
+    </div>
+
+    <div class="step-label">Step 2 — start exo on each; they auto-discover</div>
+    <p>Launch exo on both Macs. They find each other on the network automatically — no config — and exo's topology-aware planner splits the model across whatever hardware it sees. For the lowest latency, connect the two Macs over <strong>Thunderbolt</strong>.</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · optional, both Macs (macOS 26.2+, Thunderbolt 5)</span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># enable RDMA over Thunderbolt 5 for the fastest device-to-device link</span>
+rdma_ctl enable
+<span class="tok-c"># then reboot both Macs (requires matching macOS versions)</span></code></pre>
+    </div>
+
+    <div class="step-label">Step 3 — point Hermes at the cluster</div>
+    <p>exo serves an OpenAI-compatible API at <code class="ic">http://localhost:52415</code>. Run <code class="ic">hermes model</code> on whichever Mac you're driving, pick <strong>Custom endpoint</strong>, and use the exo URL:</p>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">terminal · cockpit Mac</span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># sanity-check the cluster endpoint first</span>
+curl <span class="tok-f">-N</span> <span class="tok-f">-X</span> POST <span class="tok-s">http://localhost:52415/v1/chat/completions</span> \
+  <span class="tok-f">-H</span> <span class="tok-s">'Content-Type: application/json'</span> \
+  <span class="tok-f">-d</span> <span class="tok-s">'{"model":"mlx-community/Llama-3.2-1B-Instruct-4bit",
+       "messages":[{"role":"user","content":"hi"}],"stream":true}'</span>
+
+hermes model
+<span class="tok-c"># → Custom endpoint → http://localhost:52415/v1</span>
+<span class="tok-c"># → model name = the larger model you loaded in exo</span></code></pre>
+    </div>
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>How it works.</strong> exo uses <strong>MLX</strong> as its inference backend and MLX-distributed for communication, using each Mac's Metal GPU automatically. Expect ~6–10 tok/s on a 70B over Wi-Fi between two laptops — usable for chat and agent work, slower than a single-Mac 9B. Choose this layout for <em>capability</em>, not raw speed.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="block" id="independent">
+    <div class="sec-head"><span class="sn">08</span><h2>Topology C — two independent agents</h2></div>
+    <p class="lead">Simplest conceptually: a complete Hermes on each Mac, each with its own local model, memory, and skills. Great when the two Macs do different jobs.</p>
+    <p>A productive split:</p>
+    <ul>
+      <li><strong>M2 = the always-on worker.</strong> Runs its own local model and <code class="ic">hermes gateway</code>, so you reach it from your phone (Telegram/Discord) and it executes <a class="ln" href="#use">scheduled automations</a> unattended — digests, monitors, long jobs.</li>
+      <li><strong>M1 = your interactive cockpit.</strong> Your daily-driver agent for chat, coding, and research in the TUI.</li>
+    </ul>
+    <p>Each agent learns its own skills and keeps its own memory, so they specialise over time. They don't share a brain — but the gateway means you can hand a task to the M2 worker from anywhere, even from the M1.</p>
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>Which topology?</strong> Want one capable assistant with the work on your bigger Mac → <strong>A</strong>. Want to run a model neither Mac fits alone → <strong>B</strong>. Want a dedicated always-on worker plus a separate daily driver → <strong>C</strong>. You can also start at A and add C's gateway later.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="block" id="use">
+    <div class="sec-head"><span class="sn">09</span><h2>What you can actually do with it</h2></div>
+    <p class="lead">Once a model is wired up, Hermes is a general-purpose agent. The high-value patterns:</p>
+    <div class="cards">
+      <div class="card"><div class="idx">use / chat</div><h4>Reason, code, research</h4><p>Drive it in the TUI for coding, analysis, and Q&amp;A — with web browsing and code execution among its tools.</p></div>
+      <div class="card"><div class="idx">use / reach</div><h4>Text it from your phone</h4><p><code class="ic">hermes gateway</code> connects Telegram, Discord, Slack, WhatsApp, Signal, or Email to the agent on your Mac.</p></div>
+      <div class="card"><div class="idx">use / cron</div><h4>Unattended automations</h4><p>Schedule a 7 a.m. news digest, a feed monitor, or a nightly cleanup — the worker Mac runs it while you sleep.</p></div>
+      <div class="card"><div class="idx">use / fork</div><h4>Parallel workstreams</h4><p>Spawn isolated subagents to research several threads at once, then collect the results.</p></div>
+      <div class="card"><div class="idx">use / skill</div><h4>It builds its own skills</h4><p>Repeat a task and it writes a reusable skill, improving on each run — your agent gets faster the more you use it.</p></div>
+      <div class="card"><div class="idx">use / make</div><h4>Generate images &amp; files</h4><p>Image generation and file/code creation are built in, alongside 40+ other tools.</p></div>
+    </div>
+
+    <h3>A few starter prompts</h3>
+    <div class="code">
+      <div class="code-head"><span class="ci">▸</span><span class="code-name">hermes › interactive</span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># scheduled, unattended (runs on the worker Mac)</span>
+every weekday at 7am, browse my 5 news sites and DM me a 10-bullet digest
+
+<span class="tok-c"># parallel research, then synthesis</span>
+spin up 3 subagents to compare Qwen, Llama, and Mistral for coding; summarise
+
+<span class="tok-c"># a repeatable job → becomes a saved skill</span>
+turn the CSVs in ~/reports into a weekly chart and email it to me</code></pre>
+    </div>
+
+    <p>Handy in-session slash commands:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Command</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td>/new · /reset</td><td>Start a fresh conversation.</td></tr>
+          <tr><td>/model</td><td>Switch model mid-session (e.g. local → cloud for a hard task).</td></tr>
+          <tr><td>/skills · /&lt;name&gt;</td><td>Browse or run a learned skill.</td></tr>
+          <tr><td>/personality</td><td>Switch the agent's persona.</td></tr>
+          <tr><td>/compress · /usage</td><td>Manage context; check token usage.</td></tr>
+          <tr><td>/insights --days N</td><td>Usage analytics over the last N days.</td></tr>
+          <tr><td>/retry · /undo</td><td>Redo or roll back the last turn.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p><strong>Hybrid trick.</strong> Keep the local model as the default for everyday work (free, private), and add a cloud provider in <code class="ic">~/.hermes/.env</code>. When a task is genuinely hard, <code class="ic">/model</code> over to a frontier model for that turn, then switch back.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="block" id="troubleshoot">
+    <div class="sec-head"><span class="sn">10</span><h2>Troubleshooting &amp; gotchas</h2></div>
+    <p class="lead">The handful of things that actually trip people up across two Macs.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Symptom</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Can't reach engine from other Mac</td><td>Confirm the server was started with <code class="ic">--host 0.0.0.0</code>, both Macs are on the same network, and macOS firewall isn't blocking the port. Test with the <code class="ic">curl</code> from §05 using the LAN IP.</td></tr>
+          <tr><td>Context-window errors / truncation</td><td>Hermes needs <strong>64K+</strong> context. With llama.cpp use <code class="ic">-c 131072</code>. With <strong>Ollama</strong>, set <code class="ic">OLLAMA_CONTEXT_LENGTH=64000</code> <em>before</em> starting the server — the API can't raise it afterward.</td></tr>
+          <tr><td>Streaming times out on slow generation</td><td>Set <code class="ic">HERMES_STREAM_READ_TIMEOUT=1800</code> in <code class="ic">~/.hermes/.env</code> (auto-relaxed for LAN, but force it for huge contexts).</td></tr>
+          <tr><td>Out-of-memory / system swap thrash</td><td>The model + context doesn't fit. Use a smaller quant, shrink context, or move to exo pooling (§07). Re-check the RAM table in §03.</td></tr>
+          <tr><td>exo cluster won't form</td><td>Both nodes must be reachable on the network; for RDMA-over-Thunderbolt the macOS versions must match across devices. Plain networking works without it, just slower.</td></tr>
+          <tr><td>Something's just off</td><td>Run <code class="ic">hermes doctor</code> — it diagnoses common setup problems — and <code class="ic">hermes update</code> to get the latest build.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h5>Hermes Agent</h5>
+        <a href="https://hermes-agent.nousresearch.com/docs/guides/local-llm-on-mac" target="_blank" rel="noopener">Local LLM on Mac ↗</a>
+        <a href="https://github.com/NousResearch/hermes-agent" target="_blank" rel="noopener">GitHub repo ↗</a>
+        <a href="https://hermes-agent.nousresearch.com/docs/integrations/providers" target="_blank" rel="noopener">Supported providers ↗</a>
+      </div>
+      <div class="foot-col">
+        <h5>Local models</h5>
+        <a href="https://github.com/ggml-org/llama.cpp" target="_blank" rel="noopener">llama.cpp ↗</a>
+        <a href="https://omlx.ai" target="_blank" rel="noopener">omlx (MLX app) ↗</a>
+        <a href="https://huggingface.co/Qwen" target="_blank" rel="noopener">Qwen models ↗</a>
+      </div>
+      <div class="foot-col">
+        <h5>Pool your Macs</h5>
+        <a href="https://github.com/exo-explore/exo" target="_blank" rel="noopener">exo on GitHub ↗</a>
+        <a href="https://exolabs.net" target="_blank" rel="noopener">exolabs.net ↗</a>
+      </div>
+    </div>
+    <p class="foot-note">Field guide synthesised from the official Hermes Agent documentation, the Hermes "Local LLM on Mac" guide, and the exo project docs, current as of June 2026. Commands, ports, and model names evolve — verify against the linked sources before a production setup. Not affiliated with Nous Research or exolabs.</p>
+  </footer>
+  </main>
+</div>
+</div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 1. copy buttons */
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var block = btn.closest('.code');
+      var code = block ? block.querySelector('code') : null;
+      if(!code) return;
+      navigator.clipboard.writeText(code.innerText).then(function(){
+        var old = btn.textContent;
+        btn.textContent = 'copied ✓';
+        btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = old; btn.classList.remove('done'); }, 1500);
+      });
+    });
+  });
+
+  /* 2. scroll-spy TOC */
+  var links = {};
+  document.querySelectorAll('.toc a').forEach(function(a){
+    links[a.getAttribute('href').slice(1)] = a;
+  });
+  var spy = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        Object.values(links).forEach(function(a){ a.classList.remove('active'); });
+        var a = links[e.target.id];
+        if(a) a.classList.add('active');
+      }
+    });
+  }, {rootMargin:'-30% 0px -60% 0px'});
+  document.querySelectorAll('.block').forEach(function(s){ spy.observe(s); });
+
+  /* 3. hero terminal typewriter */
+  var term = document.getElementById('term');
+  var lines = [
+    {t:'$ ', c:'pr'}, {t:'curl -fsSL hermes-agent.nousresearch.com/install.sh | bash', c:'ag', nl:true},
+    {t:'✓ python 3.11 · node · ripgrep · ffmpeg · ready', c:'ok', nl:true},
+    {t:'$ ', c:'pr'}, {t:'hermes model  ', c:'ag'}, {t:'# → custom endpoint → m2-mbp.local:8080/v1', c:'cm', nl:true},
+    {t:'$ ', c:'pr'}, {t:'hermes', c:'ag', nl:true},
+    {t:'hermes › ', c:'pr'}, {t:'every day at 7am, DM me a news digest', c:'ag', nl:true},
+    {t:'⚙ scheduled · running on the M2 engine', c:'ok', nl:true}
+  ];
+
+  if(reduce){
+    // render statically, no animation
+    var html = '';
+    lines.forEach(function(seg){
+      html += '<span class="'+seg.c+'">'+seg.t.replace(/</g,'&lt;')+'</span>' + (seg.nl?'<br>':'');
+    });
+    term.innerHTML = html;
+    return;
+  }
+
+  var li = 0, ci = 0, curSpan = null;
+  var cur = document.createElement('span'); cur.className = 'cursor';
+  function tick(){
+    if(li >= lines.length){ if(cur.parentNode) cur.parentNode.removeChild(cur); return; }
+    var seg = lines[li];
+    if(ci === 0){
+      curSpan = document.createElement('span');
+      curSpan.className = seg.c;
+      term.insertBefore(curSpan, cur);
+    }
+    curSpan.textContent = seg.t.slice(0, ci+1);
+    ci++;
+    if(ci >= seg.t.length){
+      if(seg.nl) term.insertBefore(document.createElement('br'), cur);
+      li++; ci = 0;
+      setTimeout(tick, seg.c === 'pr' ? 60 : 230);
+    } else {
+      setTimeout(tick, 18);
+    }
+  }
+  term.appendChild(cur);
+  setTimeout(tick, 400);
+})();
+</script>
+</body>
+</html>
