@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OKF Field Guide — Your Knowledge Base Is Just a Folder</title>
+<meta name="description" content="A hands-on field guide to Google Cloud's Open Knowledge Format (OKF) — a folder of Markdown files that replaces the vector database — plus how to wire an OKF bundle into a Next.js serverless chatbot with the Vercel AI SDK and Claude.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07090b;
+    --bg-2:#0b0e10;
+    --surface:#0f1512;
+    --surface-2:#131c16;
+    --border:rgba(70,240,175,.12);
+    --border-strong:rgba(70,240,175,.26);
+    --text:#e9f3ec;
+    --muted:#93a89c;
+    --faint:#5c6b62;
+    --accent:#31dd97;
+    --accent-bright:#8af0c6;
+    --warn:#ff835a;
+    --grid:rgba(49,221,151,.045);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --body:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --disp:'Bricolage Grotesque','Hanken Grotesk',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .bg-grid{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+  }
+  .bg-glow{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(700px 420px at 78% -5%,rgba(49,221,151,.16),transparent 70%),
+      radial-gradient(620px 500px at 6% 8%,rgba(255,131,90,.06),transparent 65%);
+  }
+  .bg-noise{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(16px,4vw,40px);
+    background:rgba(7,9,11,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .brand .mark{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    background:conic-gradient(from 210deg,var(--accent),var(--warn),var(--accent-bright),var(--accent));
+    display:grid;place-items:center;color:#062015;font-weight:800;font-family:var(--disp);
+    box-shadow:0 0 22px rgba(49,221,151,.35);
+  }
+  .brand b{color:var(--text);font-weight:700}
+  .brand span{color:var(--muted)}
+  .topbar nav{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px}
+  .topbar nav a{color:var(--muted);text-decoration:none;transition:color .2s}
+  .topbar nav a:hover{color:var(--accent)}
+  @media(max-width:780px){.topbar nav{display:none}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+  @media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+  aside.toc{
+    position:sticky;top:96px;align-self:start;
+    font-family:var(--mono);font-size:12.5px;
+    padding-top:8px;max-height:calc(100vh - 120px);overflow-y:auto;
+  }
+  aside.toc .lbl{color:var(--faint);letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;margin:18px 0 12px}
+  aside.toc .lbl:first-child{margin-top:0}
+  aside.toc a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--muted);text-decoration:none;padding:6px 0;
+    border-left:2px solid transparent;padding-left:14px;margin-left:-2px;
+    transition:color .2s,border-color .2s;
+  }
+  aside.toc a .num{color:var(--faint);font-size:10.5px;min-width:18px}
+  aside.toc a:hover{color:var(--text)}
+  aside.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+  aside.toc a.active .num{color:var(--accent)}
+  @media(max-width:920px){aside.toc{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:130px 0 56px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:6px 14px;margin-bottom:26px;
+    background:rgba(49,221,151,.06);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  h1.hero-title{
+    font-family:var(--disp);
+    font-weight:800;
+    font-size:clamp(2.6rem,8vw,6.2rem);
+    line-height:.97;letter-spacing:-.025em;
+    margin-bottom:22px;
+  }
+  h1.hero-title .glow{
+    color:var(--accent);
+    text-shadow:0 0 38px rgba(49,221,151,.45);
+    font-style:italic;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2.3vw,1.32rem);
+    color:var(--muted);max-width:640px;margin-bottom:36px;
+  }
+  .hero-sub b{color:var(--text);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:linear-gradient(180deg,#090d0b,#0d1210);
+    border:1px solid var(--border-strong);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.85),0 0 0 1px rgba(49,221,151,.04) inset;
+    max-width:700px;
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(49,221,151,.03)}
+  .term-bar .dots{display:flex;gap:7px}
+  .term-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .term-bar .dots i:nth-child(1){background:#ff5f56}
+  .term-bar .dots i:nth-child(2){background:#ffbd2e}
+  .term-bar .dots i:nth-child(3){background:#27c93f}
+  .term-bar .ttl{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+  .term-body{padding:20px 20px 24px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:200px}
+  .term-body .ln{white-space:pre-wrap;word-break:break-word}
+  .term-body .pr{color:var(--accent)}
+  .term-body .cmd{color:var(--text)}
+  .term-body .out{color:var(--muted)}
+  .term-body .ok{color:#7ee0a0}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .stat{
+    border:1px solid var(--border);border-radius:12px;padding:16px 20px;
+    background:var(--surface);min-width:148px;flex:1;
+  }
+  .stat .k{font-family:var(--disp);font-weight:800;font-size:1.85rem;color:var(--accent);line-height:1}
+  .stat .v{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+  /* ---------- sections ---------- */
+  .part-tag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);padding:44px 0 0;
+  }
+  section.block{padding:48px 0;border-top:1px solid var(--border);scroll-margin-top:88px}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:8px}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.6rem);letter-spacing:-.02em;line-height:1.05}
+  h3{font-family:var(--disp);font-weight:600;font-size:1.22rem;margin:30px 0 12px;letter-spacing:-.01em}
+  p{color:#cdd9d1;margin:14px 0;max-width:66ch}
+  p.lead{color:var(--muted);font-size:1.08rem}
+  a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+  a.inline:hover{border-color:var(--accent)}
+  strong{color:var(--text)}
+  em{color:var(--accent-bright);font-style:italic}
+  ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:#cdd9d1;max-width:66ch}
+  li{margin:7px 0}
+  li::marker{color:var(--accent)}
+  code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;color:var(--accent-bright)}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    position:relative;margin:20px 0;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;background:#090d0b;
+  }
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:rgba(49,221,151,.03);
+    font-family:var(--mono);font-size:11px;color:var(--faint);
+  }
+  .code-head .tag{display:flex;align-items:center;gap:8px}
+  .code-head .tag b{color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .copy{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--border);
+    padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .18s;
+  }
+  .copy:hover{color:var(--accent);border-color:var(--border-strong)}
+  .copy.done{color:#7ee0a0;border-color:rgba(126,224,160,.4)}
+  pre{padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+  pre code{color:#dce9dd;white-space:pre}
+  .tok-c{color:var(--faint);font-style:italic}      /* comment */
+  .tok-k{color:var(--accent)}                         /* keyword/cmd */
+  .tok-s{color:#9fe6a0}                               /* string */
+  .tok-f{color:var(--accent-bright)}                  /* func/flag/key */
+  .tok-n{color:#e6b3ff}                               /* number */
+  .tok-p{color:var(--muted)}                          /* punctuation */
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;
+    border-radius:12px;border:1px solid var(--border);background:var(--surface);
+    border-left:3px solid var(--accent);
+  }
+  .callout.warn{border-left-color:var(--warn)}
+  .callout .ico{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none;font-size:13px;padding-top:2px}
+  .callout.warn .ico{color:var(--warn)}
+  .callout p{margin:0;color:#cdd9d1;font-size:.96rem;max-width:none}
+  .callout b{color:var(--text)}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:540px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(49,221,151,.04)}
+  td{color:#cdd9d1}
+  td:first-child{font-family:var(--mono);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(49,221,151,.03)}
+
+  /* ---------- card grid ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .card{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card .ix{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px}
+  .card h4{font-family:var(--disp);font-weight:600;font-size:1.1rem;margin-bottom:8px}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+  /* ---------- flow diagram ---------- */
+  .flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:26px 0;font-family:var(--mono)}
+  .flow b{color:var(--accent-bright);font-weight:600}
+  .flow .node{
+    width:100%;max-width:540px;text-align:center;
+    border:1px solid var(--border);border-radius:12px;background:var(--surface);
+    padding:14px 18px;font-size:12.5px;color:var(--text);
+  }
+  .flow .node .sub{color:var(--faint);font-size:11px;margin-top:5px}
+  .flow .arrow{color:var(--accent);font-size:18px;line-height:1;padding:9px 0}
+  .flow .loop{
+    width:100%;max-width:540px;border:1px solid var(--border-strong);border-radius:14px;
+    background:linear-gradient(180deg,rgba(49,221,151,.06),transparent);
+    padding:18px 16px 14px;position:relative;
+  }
+  .flow .loop .badge{
+    position:absolute;top:-11px;left:16px;background:var(--bg);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:2px 11px;font-size:10.5px;color:var(--accent);letter-spacing:.06em;
+  }
+  .flow .loop .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:6px 0}
+  .flow .loop .cell{
+    border:1px solid var(--border);border-radius:9px;background:var(--surface-2);
+    padding:9px 12px;font-size:12px;color:var(--text);flex:1;min-width:130px;text-align:center;
+  }
+  .flow .loop .conn{color:var(--accent);font-size:15px;flex:none}
+  .flow .loop .back{color:var(--muted);font-size:11px;text-align:center;padding-top:8px}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:48px 0 70px;margin-top:30px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+  footer h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  footer a{display:block;color:var(--muted);text-decoration:none;font-size:.94rem;padding:5px 0;transition:color .2s}
+  footer a:hover{color:var(--accent)}
+  .foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:36px;line-height:1.7;max-width:640px}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .rv{animation:none;opacity:1;transform:none}
+    .cursor,.eyebrow .dot{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">K</span><span>okf&nbsp;//&nbsp;</span><b>field guide</b></div>
+  <nav>
+    <a href="#what">what is okf</a>
+    <a href="#anatomy">anatomy</a>
+    <a href="#build">build a bundle</a>
+    <a href="#route">chatbot</a>
+    <a href="#deploy">deploy</a>
+  </nav>
+</header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow rv"><span class="dot"></span> Open Knowledge Format · v0.1 · Google Cloud, June 2026</div>
+  <h1 class="hero-title rv" style="animation-delay:.05s">Your knowledge base<br>is just a <span class="glow">folder</span>.</h1>
+  <p class="hero-sub rv" style="animation-delay:.12s"><b>OKF</b> turns a directory of <b>Markdown files with YAML frontmatter</b> into a portable, agent-readable knowledge base — no vector store, no SDK, no runtime. This guide walks the whole v0.1 spec, then wires an OKF bundle into a <b>Next.js serverless chatbot</b> for 2026.</p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <span class="ttl">zsh — ~/acme-knowledge</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="k">1</div><div class="v">// required field · "type"</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="k">.md</div><div class="v">// the whole format</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="k">0</div><div class="v">// runtimes · sdks · lock-in</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="k">git</div><div class="v">// diff &amp; review like code</div></div>
+  </div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="shell">
+
+  <aside class="toc">
+    <div class="lbl">Part I · The format</div>
+    <a href="#what"><span class="num">01</span> What OKF is</a>
+    <a href="#vs-vectordb"><span class="num">02</span> Folder vs. vector DB</a>
+    <a href="#anatomy"><span class="num">03</span> Anatomy of a bundle</a>
+    <a href="#concept"><span class="num">04</span> The concept document</a>
+    <a href="#links"><span class="num">05</span> Links make a graph</a>
+    <a href="#index-log"><span class="num">06</span> index.md &amp; log.md</a>
+    <a href="#rules"><span class="num">07</span> The three rules</a>
+    <a href="#vs-rag"><span class="num">08</span> OKF vs. RAG</a>
+    <a href="#build"><span class="num">09</span> Build your first bundle</a>
+    <div class="lbl">Part II · Ship a chatbot</div>
+    <a href="#stack"><span class="num">10</span> The 2026 stack</a>
+    <a href="#where"><span class="num">11</span> Where the bundle lives</a>
+    <a href="#traversal"><span class="num">12</span> Retrieval by traversal</a>
+    <a href="#route"><span class="num">13</span> The chat route</a>
+    <a href="#hybrid"><span class="num">14</span> Add RAG for the tail</a>
+    <a href="#deploy"><span class="num">15</span> Deploy &amp; keep it fresh</a>
+  </aside>
+
+  <main>
+
+  <div class="part-tag">Part I — The format</div>
+
+  <!-- 01 -->
+  <section class="block" id="what">
+    <div class="sec-head"><span class="sec-num">01</span><h2>What OKF actually is</h2></div>
+    <p class="lead">The <strong>Open Knowledge Format</strong> is an open, vendor-neutral spec for representing what an organization <em>knows</em> — the metadata, context, and curated insight around your data and systems — as a directory of Markdown files. It was published by Google Cloud's Knowledge Catalog team in June 2026.</p>
+    <p>The whole idea is deliberately small: <strong>a folder of <code class="ic">.md</code> files, each with a YAML frontmatter block, linking to each other with ordinary Markdown links.</strong> There is no schema registry, no central authority, and no required tooling. As the spec puts it: if you can <code class="ic">cat</code> a file you can read OKF; if you can <code class="ic">git clone</code> a repo you can ship it.</p>
+    <ul>
+      <li><strong>Readable</strong> by humans without tooling — it's just Markdown.</li>
+      <li><strong>Parseable</strong> by agents without a bespoke SDK — it's just YAML + Markdown.</li>
+      <li><strong>Diffable</strong> in version control — clean line-by-line diffs, blame, PR review.</li>
+      <li><strong>Portable</strong> across tools, orgs, and time — ship it as a tarball or a git repo.</li>
+    </ul>
+    <p>The framing in the source video — <em>"the simple folder replacing vector databases"</em> — is the provocation. The reality is more useful: OKF gives an agent a <strong>pre-structured graph it can traverse deliberately</strong>, instead of a pile of chunks it has to guess through. Known facts (your tables, APIs, metrics, runbooks) live in files; dynamic fuzzy lookups can still use retrieval. More on that split in <a class="inline" href="#vs-rag">§08</a>.</p>
+    <div class="callout"><span class="ico">▎i</span><p>The pattern has a lineage: Andrej Karpathy's <b>"LLM wiki"</b> idea — instead of re-searching raw documents on every query, have the model incrementally build and maintain a living, structured wiki. OKF standardizes the <em>container</em> for that wiki.</p></div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="vs-vectordb">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Why a folder beats a vector database</h2></div>
+    <p>To give a model context today, you usually dump documents into a vector store and hope similarity search surfaces the right chunk. That approach loses two things OKF keeps:</p>
+    <ul>
+      <li><strong>Structure.</strong> Chunking shreds the relationships between things. OKF keeps one concept per file and expresses relationships as explicit links — the directory becomes a graph, not a flat list.</li>
+      <li><strong>Verifiability.</strong> With retrieval it's hard to know what the model actually saw. With OKF the agent reads named files by path; every claim can cite the exact concept it came from.</li>
+    </ul>
+    <p>And because a bundle is <em>just files</em>, you get properties a service-owned metadata store can't give you for free:</p>
+    <div class="cards">
+      <div class="card"><div class="ix">prop / git-native</div><h4>Versioned like code</h4><p>Bundles live in git. PRs, diffs, blame, and review just work — knowledge curation becomes normal software engineering.</p></div>
+      <div class="card"><div class="ix">prop / portable</div><h4>No lock-in</h4><p>A bundle is a directory. Tarball it, host it in any repo, mount it from any filesystem. No proprietary API stands between you and your metadata.</p></div>
+      <div class="card"><div class="ix">prop / composable</div><h4>Tools already speak it</h4><p>Obsidian, Notion, MkDocs, Hugo, Jekyll already render Markdown + frontmatter. Your bundle is browsable and editable with zero custom UI.</p></div>
+      <div class="card"><div class="ix">prop / dual</div><h4>Structured + prose</h4><p>Frontmatter holds the few fields you query on; the Markdown body holds the schemas, prose, and example queries that humans and LLMs actually read.</p></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="anatomy">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Anatomy of a bundle</h2></div>
+    <p class="lead">A <strong>Knowledge Bundle</strong> is the unit of distribution: a directory tree of Markdown files. The layout is up to you — organize concepts however the knowledge makes sense.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">📁<b>acme-knowledge/</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># A bundle is just a directory tree of .md files.</span>
+acme-knowledge/
+├── index.md              <span class="tok-c"># optional: a listing for progressive disclosure</span>
+├── log.md                <span class="tok-c"># optional: chronological change history</span>
+├── datasets/
+│   ├── index.md
+│   └── sales.md          <span class="tok-c"># one concept = one file</span>
+├── tables/
+│   ├── index.md
+│   ├── orders.md
+│   └── customers.md
+└── playbooks/
+    └── freshness-alert.md</code></pre>
+    </div>
+    <p>Two terms carry the whole model:</p>
+    <ul>
+      <li><strong>Concept</strong> — a single unit of knowledge, represented as one Markdown document. It can describe a tangible asset (a table, an API endpoint), an abstract idea (a metric, a business process), or anything in between.</li>
+      <li><strong>Concept ID</strong> — the file's path within the bundle, minus the <code class="ic">.md</code>. So <code class="ic">tables/orders.md</code> has the ID <code class="ic">tables/orders</code>. The path <em>is</em> the identifier.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>Only two filenames are reserved, at any level of the tree: <code class="ic">index.md</code> (a directory listing) and <code class="ic">log.md</code> (an update history). Every other <code class="ic">.md</code> file is a concept. We'll cover both reserved files in <a class="inline" href="#index-log">§06</a>.</p></div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="concept">
+    <div class="sec-head"><span class="sec-num">04</span><h2>The concept document</h2></div>
+    <p>Every concept is a UTF-8 Markdown file with two parts: a <strong>YAML frontmatter block</strong> (delimited by <code class="ic">---</code> lines) and a <strong>Markdown body</strong>. Here's a concept bound to a real resource:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">md<b>tables/orders.md</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-p">---</span>
+<span class="tok-f">type</span><span class="tok-p">:</span> <span class="tok-s">BigQuery Table</span>            <span class="tok-c"># REQUIRED — the only mandatory field</span>
+<span class="tok-f">title</span><span class="tok-p">:</span> <span class="tok-s">Customer Orders</span>
+<span class="tok-f">description</span><span class="tok-p">:</span> <span class="tok-s">One row per completed customer order.</span>
+<span class="tok-f">resource</span><span class="tok-p">:</span> <span class="tok-s">https://console.cloud.google.com/bigquery?p=acme&amp;d=sales&amp;t=orders</span>
+<span class="tok-f">tags</span><span class="tok-p">:</span> <span class="tok-p">[</span><span class="tok-s">sales</span><span class="tok-p">,</span> <span class="tok-s">orders</span><span class="tok-p">,</span> <span class="tok-s">revenue</span><span class="tok-p">]</span>
+<span class="tok-f">timestamp</span><span class="tok-p">:</span> <span class="tok-n">2026-05-28T14:30:00Z</span>
+<span class="tok-p">---</span>
+
+<span class="tok-k"># Schema</span>
+
+| Column        | Type      | Description                              |
+|---------------|-----------|------------------------------------------|
+| `order_id`    | STRING    | Globally unique order identifier.        |
+| `customer_id` | STRING    | FK into [customers](/tables/customers.md). |
+| `total_usd`   | NUMERIC   | Order total in US dollars.               |
+
+<span class="tok-k"># Joins</span>
+
+Joined with [customers](/tables/customers.md) on `customer_id`.
+Part of the [sales dataset](/datasets/sales.md).</code></pre>
+    </div>
+    <p>Only <code class="ic">type</code> is required. Everything else is recommended-but-optional, and you may add any producer-defined keys you like — conformant consumers preserve unknown fields and never reject a document for having them.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Frontmatter field</th><th>Required?</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>type</td><td>Yes</td><td>Short string identifying the kind of concept — <code class="ic">BigQuery Table</code>, <code class="ic">API Endpoint</code>, <code class="ic">Metric</code>, <code class="ic">Playbook</code>. Free-form; consumers must tolerate unknown values.</td></tr>
+          <tr><td>title</td><td>No</td><td>Human-readable display name. If omitted, consumers may derive one from the filename.</td></tr>
+          <tr><td>description</td><td>No</td><td>One-sentence summary. Used by index generators, search snippets, and previews.</td></tr>
+          <tr><td>resource</td><td>No</td><td>A canonical URI for the underlying asset (Grafana, Snowflake, Confluence, a BigQuery console link…). Absent for purely abstract concepts.</td></tr>
+          <tr><td>tags</td><td>No</td><td>A YAML list of short strings for cross-cutting categorization.</td></tr>
+          <tr><td>timestamp</td><td>No</td><td>ISO 8601 datetime of the last meaningful change.</td></tr>
+          <tr><td>&lt;anything&gt;</td><td>No</td><td>Producers may add arbitrary keys; consumers preserve them on round-trip.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Bodies are plain Markdown. Favor <strong>structural</strong> Markdown — headings, tables, fenced code — over freeform prose, since structure helps both human reading and agent retrieval. Three headings carry <em>conventional</em> meaning when they apply: <code class="ic"># Schema</code>, <code class="ic"># Examples</code>, and <code class="ic"># Citations</code>.</p>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="links">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Links make it a graph, not a tree</h2></div>
+    <p>The directory hierarchy gives you implicit parent/child structure. Everything richer — foreign keys, joins, "depends on", "see also" — is expressed with ordinary Markdown links. <strong>A link from concept A to B simply asserts a relationship;</strong> the <em>kind</em> of relationship lives in the surrounding prose, not the link.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">md<b>link forms</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># Absolute (bundle-relative) — recommended. Starts with "/", stable under moves.</span>
+See the [customers table](/tables/customers.md) for the join key.
+
+<span class="tok-c"># Relative — standard Markdown relative paths.</span>
+See the [neighboring concept](./other.md).</code></pre>
+    </div>
+    <p>Two consequences worth internalizing:</p>
+    <ul>
+      <li><strong>A foreign key, a join, and a "see also" are all the same primitive</strong> — a link. That uniformity is what makes the whole bundle traversable by a dumb reader (or a smart agent).</li>
+      <li><strong>Broken links are legal.</strong> A link whose target doesn't exist yet isn't malformed — it may just be not-yet-written knowledge. Consumers must tolerate it. This is what lets bundles grow and get refactored incrementally.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>Because links are directed edges, a consumer can compute <b>backlinks</b> ("cited by") by reversing the graph — exactly what the reference visualizer in the OKF repo does to render a force-directed graph of a bundle.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="index-log">
+    <div class="sec-head"><span class="sec-num">06</span><h2>index.md &amp; log.md</h2></div>
+    <p><code class="ic">index.md</code> is the mechanism behind <strong>progressive disclosure</strong> — the thing that lets an agent (or a human) see <em>what's available</em> before opening individual documents. It may appear in any directory, including the root. It has <strong>no frontmatter</strong>; its body is sections of links, ideally carrying each concept's description.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">md<b>tables/index.md</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k"># Core tables</span>
+
+* [Orders](orders.md) - one row per completed customer order
+* [Customers](customers.md) - one row per customer, with lifetime value
+
+<span class="tok-k"># Related</span>
+
+* [Sales dataset](/datasets/sales.md) - all sales-related tables</code></pre>
+    </div>
+    <p><code class="ic">log.md</code> is an optional, date-grouped change history for its scope, newest first. It's slightly redundant if you already use git — but it travels with the bundle when git history doesn't.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">md<b>log.md</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k"># Directory Update Log</span>
+
+<span class="tok-k">## 2026-05-22</span>
+* **Update**: Added [Customer Metrics](/tables/customer-metrics.md).
+* **Creation**: Established the [Dataplex Playbook](/playbooks/dataplex.md).
+
+<span class="tok-k">## 2026-05-15</span>
+* **Initialization**: Created foundational directory structure.</code></pre>
+    </div>
+    <p>Date headings use ISO 8601 <code class="ic">YYYY-MM-DD</code>. The leading bold word (<code class="ic">**Update**</code>, <code class="ic">**Creation**</code>, <code class="ic">**Deprecation**</code>) is a convention, not a requirement. A bundle-root <code class="ic">index.md</code> is also the one place frontmatter is permitted in an index — to declare <code class="ic">okf_version: "0.1"</code>.</p>
+  </section>
+
+  <!-- 07 -->
+  <section class="block" id="rules">
+    <div class="sec-head"><span class="sec-num">07</span><h2>The three rules (conformance)</h2></div>
+    <p class="lead">The entire spec reduces to three requirements. A bundle is conformant with OKF v0.1 if:</p>
+    <div class="cards">
+      <div class="card"><div class="ix">rule / 01</div><h4>Parseable frontmatter</h4><p>Every non-reserved <code class="ic">.md</code> file contains a parseable YAML frontmatter block.</p></div>
+      <div class="card"><div class="ix">rule / 02</div><h4>A non-empty type</h4><p>Every frontmatter block contains a non-empty <code class="ic">type</code> field.</p></div>
+      <div class="card"><div class="ix">rule / 03</div><h4>Reserved files behave</h4><p><code class="ic">index.md</code> and <code class="ic">log.md</code>, when present, follow their defined structure.</p></div>
+    </div>
+    <p>Everything else is soft guidance. A conformant consumer <strong>must not</strong> reject a bundle for: missing optional fields, unknown <code class="ic">type</code> values, extra frontmatter keys, broken cross-links, or missing <code class="ic">index.md</code> files. This permissive model is intentional — it keeps bundles useful as they grow and get partially generated by agents.</p>
+    <h3>Citations</h3>
+    <p>When a concept's body makes claims sourced from external material, list those sources under a <code class="ic"># Citations</code> heading at the bottom, numbered. Citation links can be absolute URLs, bundle-relative paths, or paths into a <code class="ic">references/</code> subdirectory that mirrors external material as first-class OKF concepts.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">md<b># Citations</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k"># Citations</span>
+
+[1] [BigQuery dataset announcement](https://cloud.google.com/blog/...)
+[2] [Internal data-quality runbook](/references/data-quality.md)</code></pre>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="block" id="vs-rag">
+    <div class="sec-head"><span class="sec-num">08</span><h2>OKF vs. RAG — complementary, not rivals</h2></div>
+    <p>Despite the headline, OKF doesn't kill retrieval. They solve different problems and most serious agent stacks will run <strong>both</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Dimension</th><th>OKF</th><th>RAG / vector search</th></tr></thead>
+        <tbody>
+          <tr><td>shape</td><td>A graph you traverse deliberately</td><td>Chunks ranked by similarity</td></tr>
+          <tr><td>retrieval</td><td>Read named files by path; follow links</td><td>Fuzzy match at query time</td></tr>
+          <tr><td>best for</td><td>Known facts — schemas, metrics, APIs, runbooks, org structure</td><td>Long-tail lookups across many unstructured docs</td></tr>
+          <tr><td>hallucination</td><td>Low — exact, citable, no embedding step</td><td>Can surface the wrong chunk</td></tr>
+          <tr><td>updates</td><td>Edit a file, commit a diff</td><td>Re-chunk and re-embed</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The heuristic: <strong>put what your org <em>knows</em> in OKF for direct, verifiable reads; keep a vector index for fuzzy search over the long tail.</strong> Part II builds the OKF half first (§10–§13), then bolts on retrieval for the tail (§14).</p>
+  </section>
+
+  <!-- 09 -->
+  <section class="block" id="build">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Build your first bundle</h2></div>
+    <p>You don't need any tooling. Make a directory, write a concept, add an index. That's a valid OKF bundle.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">mkdir</span> <span class="tok-f">-p</span> acme-knowledge/tables <span class="tok-p">&amp;&amp;</span> <span class="tok-k">cd</span> acme-knowledge
+
+<span class="tok-c"># one concept</span>
+<span class="tok-k">cat</span> <span class="tok-p">&gt;</span> tables/orders.md <span class="tok-p">&lt;&lt;</span><span class="tok-s">'MD'</span>
+---
+type: BigQuery Table
+title: Customer Orders
+description: One row per completed customer order.
+---
+# Schema
+| Column | Type | Description |
+|--------|------|-------------|
+| order_id | STRING | Unique order identifier. |
+MD
+
+<span class="tok-c"># a root index for progressive disclosure</span>
+<span class="tok-k">cat</span> <span class="tok-p">&gt;</span> index.md <span class="tok-p">&lt;&lt;</span><span class="tok-s">'MD'</span>
+# Tables
+* [Orders](tables/orders.md) - one row per completed customer order
+MD
+
+<span class="tok-k">git</span> init <span class="tok-p">&amp;&amp;</span> <span class="tok-k">git</span> add <span class="tok-p">.</span> <span class="tok-p">&amp;&amp;</span> <span class="tok-k">git</span> commit <span class="tok-f">-m</span> <span class="tok-s">"okf: seed bundle"</span></code></pre>
+    </div>
+    <p>A tiny conformance check is a dozen lines — read every non-reserved <code class="ic">.md</code>, confirm it has frontmatter with a non-empty <code class="ic">type</code>:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">js<b>validate.mjs</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> { readFileSync } <span class="tok-k">from</span> <span class="tok-s">'node:fs'</span>;
+<span class="tok-k">import</span> { globSync } <span class="tok-k">from</span> <span class="tok-s">'node:fs'</span>;   <span class="tok-c">// Node 22+: fs.globSync</span>
+
+<span class="tok-k">const</span> reserved <span class="tok-p">=</span> <span class="tok-k">new</span> <span class="tok-f">Set</span>([<span class="tok-s">'index.md'</span>, <span class="tok-s">'log.md'</span>]);
+<span class="tok-k">let</span> errors <span class="tok-p">=</span> <span class="tok-n">0</span>;
+
+<span class="tok-k">for</span> (<span class="tok-k">const</span> file <span class="tok-k">of</span> <span class="tok-f">globSync</span>(<span class="tok-s">'**/*.md'</span>)) {
+  <span class="tok-k">if</span> (reserved.<span class="tok-f">has</span>(file.<span class="tok-f">split</span>(<span class="tok-s">'/'</span>).<span class="tok-f">at</span>(<span class="tok-n">-1</span>))) <span class="tok-k">continue</span>;
+  <span class="tok-k">const</span> text <span class="tok-p">=</span> <span class="tok-f">readFileSync</span>(file, <span class="tok-s">'utf8'</span>);
+  <span class="tok-k">const</span> fm <span class="tok-p">=</span> text.<span class="tok-f">match</span>(<span class="tok-s">/^---\n([\s\S]*?)\n---/</span>);
+  <span class="tok-k">if</span> (<span class="tok-p">!</span>fm <span class="tok-p">||</span> <span class="tok-p">!</span><span class="tok-s">/^type:\s*\S/m</span>.<span class="tok-f">test</span>(fm[<span class="tok-n">1</span>])) {
+    <span class="tok-f">console</span>.<span class="tok-f">error</span>(<span class="tok-s">`✗ ${file}: missing frontmatter or non-empty type`</span>);
+    errors<span class="tok-p">++</span>;
+  }
+}
+<span class="tok-f">console</span>.<span class="tok-f">log</span>(errors ? <span class="tok-s">`${errors} error(s)`</span> : <span class="tok-s">'✓ conformant OKF v0.1'</span>);</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>For production authoring, the OKF repo ships a reference <b>enrichment agent</b> that generates bundles from a BigQuery dataset plus seed docs, and a self-contained HTML <b>visualizer</b> that renders any bundle as an interactive graph. There's also a browser validator at <code class="ic">okf.md</code>. But none of it is required — the format is the contribution.</p></div>
+  </section>
+
+  <div class="part-tag">Part II — Ship a chatbot on Next.js (serverless)</div>
+
+  <!-- 10 -->
+  <section class="block" id="stack">
+    <div class="sec-head"><span class="sec-num">10</span><h2>The 2026 stack</h2></div>
+    <p class="lead">Goal: a chatbot that answers from your OKF bundle, deployed as serverless functions, that stays honest because the model reads named files and cites them. Here's the shape.</p>
+    <div class="cards">
+      <div class="card"><div class="ix">layer / app</div><h4>Next.js App Router</h4><p>A single Route Handler at <code class="ic">app/api/chat/route.ts</code> runs as a serverless function. The UI streams tokens over HTTP.</p></div>
+      <div class="card"><div class="ix">layer / ai</div><h4>Vercel AI SDK v5</h4><p><code class="ic">ai</code> + <code class="ic">@ai-sdk/anthropic</code>. <code class="ic">streamText</code> handles streaming and the tool-calling loop; <code class="ic">useChat</code> handles the client.</p></div>
+      <div class="card"><div class="ix">layer / model</div><h4>Claude</h4><p><code class="ic">claude-sonnet-5</code> for chat — fast, cheap, 1M context. Swap one string to <code class="ic">claude-opus-4-8</code> for the hardest reasoning.</p></div>
+      <div class="card"><div class="ix">layer / knowledge</div><h4>The OKF bundle</h4><p>Your <code class="ic">/okf</code> folder, shipped with the deploy or fetched from object storage. The model traverses it through tools.</p></div>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">npx</span> create-next-app@latest okf-chat
+<span class="tok-k">cd</span> okf-chat
+<span class="tok-k">npm</span> install ai @ai-sdk/anthropic @ai-sdk/react zod
+
+<span class="tok-c"># the model provider reads this automatically</span>
+<span class="tok-k">echo</span> <span class="tok-s">'ANTHROPIC_API_KEY=sk-ant-...'</span> <span class="tok-p">&gt;&gt;</span> .env.local
+
+<span class="tok-c"># drop your bundle in at the repo root</span>
+<span class="tok-k">cp</span> <span class="tok-f">-r</span> ../acme-knowledge ./okf</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p><b>Why the Vercel AI SDK here?</b> The <code class="ic">@ai-sdk/anthropic</code> provider calls the Claude API natively (it is not an OpenAI-compatible shim) and gives you client-side streaming, a built-in tool loop, and provider-level prompt caching — exactly the pieces an OKF chatbot needs. If you prefer, the official <code class="ic">@anthropic-ai/sdk</code> works too; the OKF logic is identical.</p></div>
+  </section>
+
+  <!-- 11 -->
+  <section class="block" id="where">
+    <div class="sec-head"><span class="sec-num">11</span><h2>Where the bundle lives at runtime</h2></div>
+    <p>A serverless function is stateless and cold-starts. You have three sane options for getting the bundle in front of it:</p>
+    <ul>
+      <li><strong>In the repo (simplest).</strong> Keep <code class="ic">/okf</code> in the project and read it with <code class="ic">fs</code> at request time. Requires the <strong>Node.js runtime</strong> (not Edge) and a bundling hint so the files ship with the function.</li>
+      <li><strong>Object storage.</strong> Put the bundle in Vercel Blob / S3 / R2 and <code class="ic">fetch</code> concepts on demand. Decouples knowledge updates from redeploys; cache aggressively.</li>
+      <li><strong>Build-time import.</strong> For small, static bundles, import the Markdown as strings at build. Works on Edge, but every edit needs a rebuild.</li>
+    </ul>
+    <p>This guide uses the in-repo path. On Next.js 15+, tell the tracer to include the folder so it isn't shaken out of the serverless bundle:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">js<b>next.config.js</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c">/** @type {import('next').NextConfig} */</span>
+<span class="tok-k">module</span>.exports <span class="tok-p">=</span> {
+  <span class="tok-c">// ship every file under /okf with the chat function</span>
+  outputFileTracingIncludes: {
+    <span class="tok-s">'/api/chat'</span>: [<span class="tok-s">'./okf/**/*'</span>],
+  },
+};</code></pre>
+    </div>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>OKF is readable by design — never put secrets in it.</b> A bundle is plaintext the model reads and can quote back. Keep API keys, tokens, and PII out of the Markdown; the <code class="ic">resource</code> field should point <em>at</em> a system, not embed credentials for it.</p></div>
+  </section>
+
+  <!-- 12 -->
+  <section class="block" id="traversal">
+    <div class="sec-head"><span class="sec-num">12</span><h2>Retrieval by traversal</h2></div>
+    <p class="lead">Here's the insight that makes OKF click for chatbots: <strong>the format already ships the exact primitives an agent needs to navigate it.</strong> You don't build a retriever — you expose two tools and let the model do progressive disclosure.</p>
+    <ol>
+      <li>Put the root <code class="ic">index.md</code> in the system prompt (cached — see §13). The model always knows the <em>map</em>.</li>
+      <li>Give it <code class="ic">read_concept(id)</code> — open one concept by its path/ID.</li>
+      <li>Give it <code class="ic">list_dir(path)</code> — read a sub-directory's <code class="ic">index.md</code> to go one level deeper.</li>
+    </ol>
+    <p>The loop is: <strong>read the index → decide which concepts matter → open them → follow their links by calling <code class="ic">read_concept</code> again → answer, citing paths.</strong> The model traverses the knowledge graph on demand, pulling only the files a given question needs into context — instead of you stuffing the whole bundle in, or guessing chunks. That's the whole retrieval strategy.</p>
+    <div class="flow">
+      <div class="node">a user question<div class="sub">"which table has revenue?"</div></div>
+      <div class="arrow">↓</div>
+      <div class="node">system prompt · root <b>index.md</b><div class="sub">the map — sent once, prompt-cached</div></div>
+      <div class="arrow">↓</div>
+      <div class="loop">
+        <span class="badge">⟲ traversal loop</span>
+        <div class="row">
+          <div class="cell">Claude picks what it needs</div>
+          <div class="conn">→</div>
+          <div class="cell"><b>read_concept(id)</b> · list_dir(path)</div>
+        </div>
+        <div class="row">
+          <div class="cell">concept body <b>+ its links</b></div>
+          <div class="conn">←</div>
+          <div class="cell">readFile in <b>/okf</b></div>
+        </div>
+        <div class="back">↑ follow a link or go deeper → repeat until answered</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="node">answer <b>+ cited concept paths</b><div class="sub">e.g. tables/orders — verifiable, no embeddings</div></div>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>This is why OKF is described as <b>agent-native</b>: concept IDs are stable handles, <code class="ic">index.md</code> is a menu, and links are edges. A tool-calling model consumes all three with no adapter — the tools below are barely more than <code class="ic">readFile</code>.</p></div>
+  </section>
+
+  <!-- 13 -->
+  <section class="block" id="route">
+    <div class="sec-head"><span class="sec-num">13</span><h2>The chat route</h2></div>
+    <p>Everything comes together in one Route Handler. It loads the root index once per cold start, caches the stable system prompt with Claude prompt caching, and hands the model the traversal tools.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">ts<b>app/api/chat/route.ts</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> { anthropic } <span class="tok-k">from</span> <span class="tok-s">'@ai-sdk/anthropic'</span>;
+<span class="tok-k">import</span> {
+  streamText, tool, convertToModelMessages, stepCountIs, <span class="tok-k">type</span> UIMessage,
+} <span class="tok-k">from</span> <span class="tok-s">'ai'</span>;
+<span class="tok-k">import</span> { z } <span class="tok-k">from</span> <span class="tok-s">'zod'</span>;
+<span class="tok-k">import</span> { readFile } <span class="tok-k">from</span> <span class="tok-s">'node:fs/promises'</span>;
+<span class="tok-k">import</span> { join } <span class="tok-k">from</span> <span class="tok-s">'node:path'</span>;
+
+<span class="tok-k">export const</span> runtime <span class="tok-p">=</span> <span class="tok-s">'nodejs'</span>;   <span class="tok-c">// need fs to read the bundle</span>
+<span class="tok-k">export const</span> maxDuration <span class="tok-p">=</span> <span class="tok-n">30</span>;
+
+<span class="tok-k">const</span> BUNDLE <span class="tok-p">=</span> <span class="tok-f">join</span>(process.cwd(), <span class="tok-s">'okf'</span>);
+
+<span class="tok-c">// resolve an OKF concept id / path safely inside the bundle</span>
+<span class="tok-k">async function</span> <span class="tok-f">readInBundle</span>(rel: <span class="tok-f">string</span>) {
+  <span class="tok-k">const</span> clean <span class="tok-p">=</span> rel.<span class="tok-f">replace</span>(<span class="tok-s">/\\/g</span>, <span class="tok-s">'/'</span>).<span class="tok-f">replace</span>(<span class="tok-s">/(^\/|\.\.)/g</span>, <span class="tok-s">''</span>);
+  <span class="tok-k">return</span> <span class="tok-f">readFile</span>(<span class="tok-f">join</span>(BUNDLE, clean), <span class="tok-s">'utf8'</span>);
+}
+
+<span class="tok-c">// loaded once per cold start — small, stable, cacheable</span>
+<span class="tok-k">const</span> rootIndex <span class="tok-p">=</span> <span class="tok-k">await</span> <span class="tok-f">readInBundle</span>(<span class="tok-s">'index.md'</span>);
+
+<span class="tok-k">export async function</span> <span class="tok-f">POST</span>(req: Request) {
+  <span class="tok-k">const</span> { messages }: { messages: UIMessage[] } <span class="tok-p">=</span> <span class="tok-k">await</span> req.<span class="tok-f">json</span>();
+
+  <span class="tok-k">const</span> result <span class="tok-p">=</span> <span class="tok-f">streamText</span>({
+    model: <span class="tok-f">anthropic</span>(<span class="tok-s">'claude-sonnet-5'</span>),
+    stopWhen: <span class="tok-f">stepCountIs</span>(<span class="tok-n">6</span>),          <span class="tok-c">// allow a few traversal hops</span>
+    messages: [
+      {
+        role: <span class="tok-s">'system'</span>,
+        content:
+          <span class="tok-s">"You answer from the company's OKF knowledge bundle. "</span> <span class="tok-p">+</span>
+          <span class="tok-s">'Start from the index below, open the concepts you need with '</span> <span class="tok-p">+</span>
+          <span class="tok-s">'read_concept, follow their links, and cite the concept path '</span> <span class="tok-p">+</span>
+          <span class="tok-s">'(e.g. tables/orders) for every claim.\n\n# index.md\n'</span> <span class="tok-p">+</span> rootIndex,
+        <span class="tok-c">// cache the stable system + index → repeat turns read it at ~0.1x</span>
+        providerOptions: { anthropic: { cacheControl: { type: <span class="tok-s">'ephemeral'</span> } } },
+      },
+      <span class="tok-p">...</span><span class="tok-f">convertToModelMessages</span>(messages),
+    ],
+    tools: {
+      read_concept: <span class="tok-f">tool</span>({
+        description: <span class="tok-s">'Read one OKF concept by id (path without .md), e.g. "tables/orders".'</span>,
+        inputSchema: z.<span class="tok-f">object</span>({ id: z.<span class="tok-f">string</span>() }),
+        execute: <span class="tok-k">async</span> ({ id }) <span class="tok-p">=&gt;</span>
+          <span class="tok-f">readInBundle</span>(id <span class="tok-p">+</span> <span class="tok-s">'.md'</span>)
+            .<span class="tok-f">catch</span>(() <span class="tok-p">=&gt;</span> <span class="tok-s">`No concept "${id}". Check the index for valid ids.`</span>),
+      }),
+      list_dir: <span class="tok-f">tool</span>({
+        description: <span class="tok-s">'Read a sub-directory index (progressive disclosure), e.g. "tables".'</span>,
+        inputSchema: z.<span class="tok-f">object</span>({ path: z.<span class="tok-f">string</span>() }),
+        execute: <span class="tok-k">async</span> ({ path }) <span class="tok-p">=&gt;</span>
+          <span class="tok-f">readInBundle</span>(<span class="tok-f">join</span>(path, <span class="tok-s">'index.md'</span>))
+            .<span class="tok-f">catch</span>(() <span class="tok-p">=&gt;</span> <span class="tok-s">`No index under "${path}".`</span>),
+      }),
+    },
+  });
+
+  <span class="tok-k">return</span> result.<span class="tok-f">toUIMessageStreamResponse</span>();
+}</code></pre>
+    </div>
+    <p>The client is a small <code class="ic">useChat</code> component: it POSTs the message list to the route, then walks each message's <code class="ic">parts</code> — rendering <strong>text bubbles</strong> and a badge for every <strong>tool call</strong>, so you can watch the model open concepts live.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">tsx<b>app/page.tsx</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-s">'use client'</span>;
+<span class="tok-k">import</span> { useChat } <span class="tok-k">from</span> <span class="tok-s">'@ai-sdk/react'</span>;
+<span class="tok-k">import</span> { useState } <span class="tok-k">from</span> <span class="tok-s">'react'</span>;
+
+<span class="tok-k">export default function</span> <span class="tok-f">Chat</span>() {
+  <span class="tok-k">const</span> { messages, sendMessage, status } <span class="tok-p">=</span> <span class="tok-f">useChat</span>();
+  <span class="tok-k">const</span> [input, setInput] <span class="tok-p">=</span> <span class="tok-f">useState</span>(<span class="tok-s">''</span>);
+
+  <span class="tok-k">return</span> (
+    <span class="tok-p">&lt;</span><span class="tok-f">main</span> className=<span class="tok-s">"chat"</span><span class="tok-p">&gt;</span>
+      {messages.<span class="tok-f">map</span>((m) <span class="tok-p">=&gt;</span> (
+        <span class="tok-p">&lt;</span><span class="tok-f">div</span> key={m.id} data-role={m.role}<span class="tok-p">&gt;</span>
+          {m.parts.<span class="tok-f">map</span>((part, i) <span class="tok-p">=&gt;</span> {
+            <span class="tok-c">// plain assistant / user text → a bubble</span>
+            <span class="tok-k">if</span> (part.type <span class="tok-p">===</span> <span class="tok-s">'text'</span>)
+              <span class="tok-k">return</span> <span class="tok-p">&lt;</span><span class="tok-f">p</span> key={i} className=<span class="tok-s">"bubble"</span><span class="tok-p">&gt;</span>{part.text}<span class="tok-p">&lt;/</span><span class="tok-f">p</span><span class="tok-p">&gt;</span>;
+
+            <span class="tok-c">// a tool call: read_concept / list_dir / search_docs</span>
+            <span class="tok-k">if</span> (part.type.<span class="tok-f">startsWith</span>(<span class="tok-s">'tool-'</span>)) {
+              <span class="tok-k">const</span> name <span class="tok-p">=</span> part.type.<span class="tok-f">slice</span>(<span class="tok-n">5</span>);
+              <span class="tok-k">return</span> (
+                <span class="tok-p">&lt;</span><span class="tok-f">div</span> key={i} className=<span class="tok-s">"tool"</span><span class="tok-p">&gt;</span>
+                  🔧 {name}({<span class="tok-f">JSON</span>.<span class="tok-f">stringify</span>(part.input)}) · {part.state}
+                <span class="tok-p">&lt;/</span><span class="tok-f">div</span><span class="tok-p">&gt;</span>
+              );
+            }
+            <span class="tok-k">return</span> <span class="tok-k">null</span>;
+          })}
+        <span class="tok-p">&lt;/</span><span class="tok-f">div</span><span class="tok-p">&gt;</span>
+      ))}
+
+      <span class="tok-p">&lt;</span><span class="tok-f">form</span>
+        onSubmit={(e) <span class="tok-p">=&gt;</span> {
+          e.<span class="tok-f">preventDefault</span>();
+          <span class="tok-k">if</span> (<span class="tok-p">!</span>input.<span class="tok-f">trim</span>()) <span class="tok-k">return</span>;
+          <span class="tok-f">sendMessage</span>({ text: input }); <span class="tok-c">// v5: send a text part</span>
+          <span class="tok-f">setInput</span>(<span class="tok-s">''</span>);
+        }}
+      <span class="tok-p">&gt;</span>
+        <span class="tok-p">&lt;</span><span class="tok-f">input</span>
+          value={input}
+          onChange={(e) <span class="tok-p">=&gt;</span> <span class="tok-f">setInput</span>(e.target.value)}
+          placeholder=<span class="tok-s">"Ask about the knowledge base…"</span>
+          disabled={status <span class="tok-p">!==</span> <span class="tok-s">'ready'</span>}
+        <span class="tok-p">/&gt;</span>
+      <span class="tok-p">&lt;/</span><span class="tok-f">form</span><span class="tok-p">&gt;</span>
+    <span class="tok-p">&lt;/</span><span class="tok-f">main</span><span class="tok-p">&gt;</span>
+  );
+}</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p><b>Prompt caching pays off fast here.</b> The system prompt + root index are byte-identical across turns, so marking them <code class="ic">ephemeral</code> lets every follow-up read that prefix at ~0.1× input cost instead of full price. The cached prefix must clear the model's minimum (≈1024 tokens on Sonnet) — a real index easily does. Keep anything volatile (timestamps, per-request IDs) <em>out</em> of that block or you'll silently invalidate the cache.</p></div>
+  </section>
+
+  <!-- 14 -->
+  <section class="block" id="hybrid">
+    <div class="sec-head"><span class="sec-num">14</span><h2>Add RAG for the long tail</h2></div>
+    <p>OKF is authoritative for structured, known facts. For fuzzy search over a pile of unstructured docs — support tickets, PDFs, wiki pages — add a vector-search tool alongside the traversal tools. The model picks: <strong>traverse OKF for "what's the schema of orders?", search for "have we seen this error before?"</strong></p>
+    <div class="code">
+      <div class="code-head"><span class="tag">ts<b>a third tool</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c">// alongside read_concept / list_dir in the same `tools` object</span>
+search_docs: <span class="tok-f">tool</span>({
+  description:
+    <span class="tok-s">'Fuzzy semantic search over unstructured docs. Use for open-ended '</span> <span class="tok-p">+</span>
+    <span class="tok-s">'lookups; prefer read_concept for known tables, metrics, and runbooks.'</span>,
+  inputSchema: z.<span class="tok-f">object</span>({ query: z.<span class="tok-f">string</span>(), k: z.<span class="tok-f">number</span>().<span class="tok-f">default</span>(<span class="tok-n">5</span>) }),
+  execute: <span class="tok-k">async</span> ({ query, k }) <span class="tok-p">=&gt;</span> {
+    <span class="tok-k">const</span> hits <span class="tok-p">=</span> <span class="tok-k">await</span> <span class="tok-f">vectorSearch</span>(query, k);  <span class="tok-c">// pgvector / Neon / Upstash…</span>
+    <span class="tok-k">return</span> hits.<span class="tok-f">map</span>(h <span class="tok-p">=&gt;</span> <span class="tok-s">`# ${h.title}\n${h.text}`</span>).<span class="tok-f">join</span>(<span class="tok-s">'\n\n---\n\n'</span>);
+  },
+}),</code></pre>
+    </div>
+    <p>A tidy trick: mirror anything the tail search keeps surfacing into a <code class="ic">references/</code> subdirectory as first-class OKF concepts. Over time the "known" set grows and the fuzzy set shrinks — the LLM-wiki pattern in action. This is also where the model's own edits could feed back: an agent can <em>write</em> OKF files as it learns, then read them next session.</p>
+  </section>
+
+  <!-- 15 -->
+  <section class="block" id="deploy">
+    <div class="sec-head"><span class="sec-num">15</span><h2>Deploy &amp; keep it fresh</h2></div>
+    <p>Ship it and treat the bundle like source:</p>
+    <ul>
+      <li><strong>Deploy.</strong> <code class="ic">vercel deploy</code>. The route runs as a Node.js serverless function; the <code class="ic">outputFileTracingIncludes</code> hint from §11 carries <code class="ic">/okf</code> into it.</li>
+      <li><strong>Keep it current with git.</strong> Editing knowledge is a pull request against Markdown — humans or an enrichment agent open PRs, you review the diff, merge, redeploy. That's the entire "content pipeline."</li>
+      <li><strong>Decouple if you need to.</strong> For frequent updates without redeploys, move the bundle to Blob/R2 and have the tools <code class="ic">fetch</code> concepts (cache them per instance). Same tool signatures — only <code class="ic">readInBundle</code> changes.</li>
+      <li><strong>Mind the cache TTL.</strong> Claude's ephemeral cache lasts ~5 minutes; bursty chat traffic keeps it warm on its own. The root index loads once per cold start, so cold starts stay cheap.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p><b>What you end up with:</b> a chatbot whose knowledge is a reviewable folder of Markdown, that answers by reading named files and citing their paths, and that degrades gracefully — a missing concept or broken link is a legal state, not a crash. That's the OKF payoff carried all the way to production.</p></div>
+    <p>From here: generate bundles from your real catalog with the reference agent, add per-directory <code class="ic">log.md</code> files so the model can reason about <em>recency</em>, and let the agent write back learnings as new concepts. The folder grows; the format stays a folder.</p>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+<div class="wrap">
+  <div class="foot-grid">
+    <div>
+      <h4>Source</h4>
+      <a href="https://www.youtube.com/watch?v=2kKkb01GxYQ" target="_blank" rel="noopener">Google's OKF — the folder replacing vector DBs ↗</a>
+      <a href="https://okf.md/" target="_blank" rel="noopener">okf.md — spec site &amp; validator ↗</a>
+    </div>
+    <div>
+      <h4>Spec &amp; tooling</h4>
+      <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md" target="_blank" rel="noopener">SPEC.md (OKF v0.1) ↗</a>
+      <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog" target="_blank" rel="noopener">knowledge-catalog repo ↗</a>
+      <a href="https://okf.md/faq/" target="_blank" rel="noopener">OKF FAQ ↗</a>
+    </div>
+    <div>
+      <h4>Chatbot stack</h4>
+      <a href="https://ai-sdk.dev/" target="_blank" rel="noopener">Vercel AI SDK v5 ↗</a>
+      <a href="https://ai-sdk.dev/providers/ai-sdk-providers/anthropic" target="_blank" rel="noopener">@ai-sdk/anthropic provider ↗</a>
+      <a href="https://platform.claude.com/docs/en/about-claude/models/overview" target="_blank" rel="noopener">Claude models ↗</a>
+    </div>
+  </div>
+  <p class="foot-note">A community field guide — not affiliated with Google or Anthropic. OKF is v0.1 (draft); the format's own repo notes it is not an official Google product, so verify details against SPEC.md before relying on them. Code targets Next.js 15 and Vercel AI SDK v5 as of mid-2026 — package names and APIs drift, so check the linked docs if anything looks off. Nothing here needs a vector database to get started.</p>
+</div>
+</footer>
+
+<script>
+/* ---- copy buttons ---- */
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('pre code');
+    navigator.clipboard.writeText(code.innerText.trim()).then(()=>{
+      const t=btn.textContent;btn.textContent='copied ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+/* ---- scroll-spy nav ---- */
+const links=[...document.querySelectorAll('aside.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id); if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section.block').forEach(s=>spy.observe(s));
+
+/* ---- hero terminal typewriter ---- */
+(function(){
+  const el=document.getElementById('term');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines=[
+    {t:'$ ',c:'tree acme-knowledge/',cls:'cmd'},
+    {t:'',c:'index.md  datasets/  tables/  playbooks/',cls:'out',pre:true},
+    {t:'$ ',c:'head -2 tables/orders.md',cls:'cmd'},
+    {t:'',c:'--- type: BigQuery Table',cls:'out',pre:true},
+    {t:'$ ',c:'node validate.mjs acme-knowledge',cls:'cmd'},
+    {t:'',c:'✓ conformant OKF v0.1 — 42 concepts, 0 errors',cls:'ok',pre:true},
+  ];
+  if(reduce){
+    el.innerHTML=lines.map(l=>`<div class="ln"><span class="pr">${l.t}</span><span class="${l.cls}">${l.c}</span></div>`).join('');
+    return;
+  }
+  let li=0;
+  function nextLine(){
+    if(li>=lines.length){
+      const cur=document.createElement('span');cur.className='cursor';
+      el.lastChild.appendChild(cur);return;
+    }
+    const l=lines[li++];
+    const row=document.createElement('div');row.className='ln';
+    row.innerHTML=`<span class="pr">${l.t}</span><span class="${l.cls}"></span>`;
+    el.appendChild(row);
+    const target=row.querySelector('span:last-child');
+    if(l.pre){
+      let i=0;const speed=10;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,speed);else setTimeout(nextLine,300);
+      })();
+    }else{
+      let i=0;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,30);else setTimeout(nextLine,360);
+      })();
+    }
+  }
+  nextLine();
+})();
+</script>
+</body>
+</html>
