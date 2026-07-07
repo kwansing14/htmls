@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serverless Blog Field Guide — Astro + Cloudflare, $0/month</title>
+<meta name="description" content="A hands-on field guide to building a fully serverless blog with Astro and Cloudflare — static reader pages plus a server-rendered admin panel, all on the edge, for zero monthly cost.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070a0b;
+    --bg-2:#0a0f10;
+    --surface:#0d1415;
+    --surface-2:#11191a;
+    --border:rgba(80,230,210,.12);
+    --border-strong:rgba(80,230,210,.26);
+    --text:#e9f5f2;
+    --muted:#8aa39e;
+    --faint:#546b66;
+    --accent:#34e0c8;
+    --accent-bright:#8ff5e6;
+    --warn:#ff8a5c;
+    --grid:rgba(60,220,200,.045);
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --body:'Hanken Grotesk',-apple-system,system-ui,sans-serif;
+    --disp:'Bricolage Grotesque','Hanken Grotesk',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:90px}
+
+  body{
+    font-family:var(--body);
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .bg-grid{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:64px 64px;
+    mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+    -webkit-mask-image:radial-gradient(ellipse 120% 80% at 50% 0%,#000 35%,transparent 78%);
+  }
+  .bg-glow{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(700px 420px at 75% -5%,rgba(52,224,200,.16),transparent 70%),
+      radial-gradient(620px 500px at 8% 8%,rgba(255,138,92,.07),transparent 65%);
+  }
+  .bg-noise{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:fixed;top:0;left:0;right:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px clamp(16px,4vw,40px);
+    background:rgba(7,10,11,.72);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:13px;letter-spacing:.04em}
+  .brand .mark{
+    width:30px;height:30px;border-radius:8px;flex:none;
+    background:conic-gradient(from 210deg,var(--accent),var(--warn),var(--accent-bright),var(--accent));
+    display:grid;place-items:center;color:#04140f;font-weight:800;font-family:var(--disp);
+    box-shadow:0 0 22px rgba(52,224,200,.35);
+  }
+  .brand b{color:var(--text);font-weight:700}
+  .brand span{color:var(--muted)}
+  .topbar nav{display:flex;gap:22px;font-family:var(--mono);font-size:12.5px}
+  .topbar nav a{color:var(--muted);text-decoration:none;transition:color .2s}
+  .topbar nav a:hover{color:var(--accent)}
+  @media(max-width:780px){.topbar nav{display:none}}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+  .shell{display:grid;grid-template-columns:226px 1fr;gap:48px;align-items:start}
+  @media(max-width:920px){.shell{grid-template-columns:1fr}}
+
+  aside.toc{
+    position:sticky;top:96px;align-self:start;
+    font-family:var(--mono);font-size:12.5px;
+    padding-top:8px;
+  }
+  aside.toc .lbl{color:var(--faint);letter-spacing:.18em;text-transform:uppercase;font-size:10.5px;margin-bottom:14px}
+  aside.toc a{
+    display:flex;gap:10px;align-items:baseline;
+    color:var(--muted);text-decoration:none;padding:6px 0;
+    border-left:2px solid transparent;padding-left:14px;margin-left:-2px;
+    transition:color .2s,border-color .2s;
+  }
+  aside.toc a .num{color:var(--faint);font-size:10.5px;min-width:18px}
+  aside.toc a:hover{color:var(--text)}
+  aside.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+  aside.toc a.active .num{color:var(--accent)}
+  @media(max-width:920px){aside.toc{display:none}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:130px 0 56px;position:relative}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    border:1px solid var(--border-strong);border-radius:100px;
+    padding:6px 14px;margin-bottom:26px;
+    background:rgba(52,224,200,.06);
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  h1.hero-title{
+    font-family:var(--disp);
+    font-weight:800;
+    font-size:clamp(2.7rem,8.2vw,6.4rem);
+    line-height:.96;letter-spacing:-.025em;
+    margin-bottom:22px;
+  }
+  h1.hero-title .glow{
+    color:var(--accent);
+    text-shadow:0 0 38px rgba(52,224,200,.45);
+    font-style:italic;
+  }
+  .hero-sub{
+    font-size:clamp(1.05rem,2.3vw,1.35rem);
+    color:var(--muted);max-width:640px;margin-bottom:36px;
+  }
+  .hero-sub b{color:var(--text);font-weight:700}
+
+  /* ---------- terminal ---------- */
+  .term{
+    background:linear-gradient(180deg,#091211,#0b1514);
+    border:1px solid var(--border-strong);
+    border-radius:14px;overflow:hidden;
+    box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(52,224,200,.04) inset;
+    max-width:680px;
+  }
+  .term-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(52,224,200,.03)}
+  .term-bar .dots{display:flex;gap:7px}
+  .term-bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .term-bar .dots i:nth-child(1){background:#ff5f56}
+  .term-bar .dots i:nth-child(2){background:#ffbd2e}
+  .term-bar .dots i:nth-child(3){background:#27c93f}
+  .term-bar .ttl{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px}
+  .term-body{padding:20px 20px 24px;font-family:var(--mono);font-size:13px;line-height:1.85;min-height:188px}
+  .term-body .ln{white-space:pre-wrap;word-break:break-word}
+  .term-body .pr{color:var(--accent)}
+  .term-body .cmd{color:var(--text)}
+  .term-body .out{color:var(--muted)}
+  .term-body .ok{color:#7ee08a}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;margin-left:2px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .stats{display:flex;flex-wrap:wrap;gap:14px;margin-top:40px}
+  .stat{
+    border:1px solid var(--border);border-radius:12px;padding:16px 20px;
+    background:var(--surface);min-width:148px;flex:1;
+  }
+  .stat .k{font-family:var(--disp);font-weight:800;font-size:1.85rem;color:var(--accent);line-height:1}
+  .stat .v{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:.03em}
+
+  /* ---------- sections ---------- */
+  section.block{padding:54px 0;border-top:1px solid var(--border);scroll-margin-top:88px}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:18px}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:8px}
+  h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+  h3{font-family:var(--disp);font-weight:600;font-size:1.25rem;margin:30px 0 12px;letter-spacing:-.01em}
+  p{color:#d4e0dd;margin:14px 0;max-width:66ch}
+  p.lead{color:var(--muted);font-size:1.08rem}
+  a.inline{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+  a.inline:hover{border-color:var(--accent)}
+  strong{color:var(--text)}
+  ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:#d4e0dd;max-width:66ch}
+  li{margin:7px 0}
+  li::marker{color:var(--accent)}
+  code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;color:var(--accent-bright)}
+
+  /* ---------- code blocks ---------- */
+  .code{
+    position:relative;margin:20px 0;border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;background:#09100f;
+  }
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:rgba(52,224,200,.03);
+    font-family:var(--mono);font-size:11px;color:var(--faint);
+  }
+  .code-head .tag{display:flex;align-items:center;gap:8px}
+  .code-head .tag b{color:var(--muted);font-weight:500;letter-spacing:.05em}
+  .copy{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--border);
+    padding:4px 11px;border-radius:6px;cursor:pointer;transition:all .18s;
+  }
+  .copy:hover{color:var(--accent);border-color:var(--border-strong)}
+  .copy.done{color:#7ee08a;border-color:rgba(126,224,138,.4)}
+  pre{padding:18px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+  pre code{color:#dce8e4;white-space:pre}
+  .tok-c{color:var(--faint);font-style:italic}      /* comment */
+  .tok-k{color:var(--accent)}                         /* keyword/cmd */
+  .tok-s{color:#9fe6a0}                               /* string */
+  .tok-f{color:var(--accent-bright)}                  /* func/flag */
+  .tok-n{color:#e6b3ff}                               /* number */
+  .tok-p{color:var(--muted)}                          /* punctuation/prompt */
+
+  /* ---------- callouts ---------- */
+  .callout{
+    display:flex;gap:14px;margin:22px 0;padding:16px 18px;
+    border-radius:12px;border:1px solid var(--border);background:var(--surface);
+    border-left:3px solid var(--accent);
+  }
+  .callout.warn{border-left-color:var(--warn)}
+  .callout .ico{font-family:var(--mono);font-weight:700;color:var(--accent);flex:none;font-size:13px;padding-top:2px}
+  .callout.warn .ico{color:var(--warn)}
+  .callout p{margin:0;color:#d4e0dd;font-size:.96rem;max-width:none}
+  .callout b{color:var(--text)}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:520px}
+  th,td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--border)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:rgba(52,224,200,.04)}
+  td{color:#d4e0dd}
+  td:first-child{font-family:var(--mono);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:rgba(52,224,200,.03)}
+
+  /* ---------- steps grid ---------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
+  .card{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface);transition:transform .2s,border-color .2s}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card .ix{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:12px}
+  .card h4{font-family:var(--disp);font-weight:600;font-size:1.12rem;margin-bottom:8px}
+  .card p{font-size:.9rem;color:var(--muted);margin:0;max-width:none}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--border);padding:48px 0 70px;margin-top:30px}
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between}
+  footer h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px}
+  footer a{display:block;color:var(--muted);text-decoration:none;font-size:.94rem;padding:5px 0;transition:color .2s}
+  footer a:hover{color:var(--accent)}
+  .foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:36px;line-height:1.7;max-width:560px}
+
+  /* ---------- reveal ---------- */
+  .rv{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media(prefers-reduced-motion:reduce){
+    .rv{animation:none;opacity:1;transform:none}
+    .cursor,.eyebrow .dot{animation:none}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">/</span><span>serverless&nbsp;//&nbsp;</span><b>field guide</b></div>
+  <nav>
+    <a href="#stack">stack</a>
+    <a href="#scaffold">scaffold</a>
+    <a href="#adapter">adapter</a>
+    <a href="#admin">admin</a>
+    <a href="#deploy">deploy</a>
+    <a href="#cost">cost</a>
+  </nav>
+</header>
+
+<div class="wrap">
+<div class="hero">
+  <div class="eyebrow rv"><span class="dot"></span> Astro · Cloudflare · edge-rendered · $0/month</div>
+  <h1 class="hero-title rv" style="animation-delay:.05s">Ship a blog<br>for <span class="glow">zero</span> a month.</h1>
+  <p class="hero-sub rv" style="animation-delay:.12s">A hands-on field guide to building a <b>fully serverless blog</b> with <b>Astro</b> and <b>Cloudflare</b>. Static, lightning-fast pages for readers — plus a server-rendered admin panel to write posts — all running as <b>one app on the edge</b>. No CMS, no servers, no monthly bill.</p>
+
+  <div class="term rv" style="animation-delay:.2s">
+    <div class="term-bar">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <span class="ttl">zsh — ~/my-blog</span>
+    </div>
+    <div class="term-body" id="term"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat rv" style="animation-delay:.28s"><div class="k">$0</div><div class="v">// monthly hosting</div></div>
+    <div class="stat rv" style="animation-delay:.34s"><div class="k">1 app</div><div class="v">// reader + admin</div></div>
+    <div class="stat rv" style="animation-delay:.4s"><div class="k">~330</div><div class="v">// edge locations</div></div>
+    <div class="stat rv" style="animation-delay:.46s"><div class="k">100k</div><div class="v">// free reqs / day</div></div>
+  </div>
+</div>
+</div>
+
+<div class="wrap">
+<div class="shell">
+
+  <aside class="toc">
+    <div class="lbl">Contents</div>
+    <a href="#why"><span class="num">01</span> Why this stack</a>
+    <a href="#stack"><span class="num">02</span> The architecture</a>
+    <a href="#prereq"><span class="num">03</span> Prerequisites</a>
+    <a href="#scaffold"><span class="num">04</span> Scaffold Astro</a>
+    <a href="#adapter"><span class="num">05</span> Cloudflare adapter</a>
+    <a href="#content"><span class="num">06</span> Reader pages</a>
+    <a href="#data"><span class="num">07</span> Data on D1</a>
+    <a href="#admin"><span class="num">08</span> Admin panel</a>
+    <a href="#auth"><span class="num">09</span> Lock it down</a>
+    <a href="#deploy"><span class="num">10</span> Deploy to the edge</a>
+    <a href="#cost"><span class="num">11</span> The $0 math</a>
+    <a href="#next"><span class="num">12</span> Next steps</a>
+  </aside>
+
+  <main>
+
+  <!-- 01 -->
+  <section class="block" id="why">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Why Astro + Cloudflare</h2></div>
+    <p class="lead">The goal is a blog that is fast for readers, pleasant to write in, and free to run. Most "free" blog stacks fail one of those — they're either a static folder with no way to publish from your phone, or a CMS that bills you the moment you get traffic. This stack threads the needle.</p>
+    <p><strong>Astro</strong> is a content-first web framework. It ships <em>zero JavaScript by default</em>, rendering pages to plain HTML, so a reader's article loads instantly. But Astro is also a real server framework: with an adapter it can render pages on demand, which is exactly what an admin panel needs.</p>
+    <p><strong>Cloudflare</strong> runs your code on its global edge network. The free tier is unusually generous — enough requests, storage, and database reads to run a personal blog comfortably without ever reaching for a credit card.</p>
+    <ul>
+      <li><strong>No third-party CMS</strong> — no Contentful, no WordPress, no Ghost subscription. You own the whole thing.</li>
+      <li><strong>One codebase</strong> — the public site and the admin live in the same Astro project and deploy together.</li>
+      <li><strong>Edge-native data</strong> — Cloudflare D1 (SQLite) for posts and R2 for images, both with free tiers.</li>
+      <li><strong>Global by default</strong> — every page is served from the Cloudflare location nearest the reader.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>This guide rebuilds the approach from <b>"Building a Serverless Blog with Astro, Cloudflare, and Zero Monthly Cost."</b> The core idea: <b>static pages for readers, a server-rendered admin panel for you</b> — both shipped as a single Astro app on the edge.</p></div>
+  </section>
+
+  <!-- 02 -->
+  <section class="block" id="stack">
+    <div class="sec-head"><span class="sec-num">02</span><h2>The architecture in one picture</h2></div>
+    <p>The whole blog is a single Astro project deployed to Cloudflare. The trick is that not every route is treated the same way. Reader-facing routes are <strong>pre-rendered to static HTML</strong>; the admin routes are <strong>rendered on demand</strong> by a Worker.</p>
+    <div class="cards">
+      <div class="card"><div class="ix">layer / read</div><h4>Static reader site</h4><p>Home, post pages, tags, RSS — pre-built HTML, served from cache at the edge. Instant, JS-free.</p></div>
+      <div class="card"><div class="ix">layer / write</div><h4>SSR admin panel</h4><p>A protected <code class="ic">/admin</code> area that runs server-side to create, edit and publish posts.</p></div>
+      <div class="card"><div class="ix">layer / data</div><h4>D1 + R2</h4><p>Cloudflare D1 (SQLite at the edge) stores posts; R2 object storage holds uploaded images.</p></div>
+      <div class="card"><div class="ix">layer / run</div><h4>Cloudflare Workers</h4><p>The Astro adapter compiles your app to a Worker that runs in ~330 cities worldwide.</p></div>
+    </div>
+    <p>Because both halves live in one project, publishing a post and shipping a design change use the same deploy. There is no separate backend service to keep alive, and nothing to patch.</p>
+    <div class="callout"><span class="ico">▎i</span><p>Astro calls this <b>hybrid rendering</b>. The default output is <code class="ic">server</code>, and any page you mark <code class="ic">export const prerender = true</code> is baked to static HTML at build time. Reader pages opt into static; admin pages stay dynamic.</p></div>
+  </section>
+
+  <!-- 03 -->
+  <section class="block" id="prereq">
+    <div class="sec-head"><span class="sec-num">03</span><h2>What you need first</h2></div>
+    <p>Three things, all free:</p>
+    <ul>
+      <li><strong>Node.js 18+</strong> and a package manager (<code class="ic">npm</code>, <code class="ic">pnpm</code>, or <code class="ic">bun</code>).</li>
+      <li>A <strong>Cloudflare account</strong> — the free plan is all this guide uses.</li>
+      <li>The <strong>Wrangler</strong> CLI, Cloudflare's deploy + resource tool.</li>
+    </ul>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># check your Node version (need 18 or newer)</span>
+<span class="tok-k">node</span> <span class="tok-f">--version</span>
+
+<span class="tok-c"># install Wrangler and log in to Cloudflare</span>
+<span class="tok-k">npm</span> install <span class="tok-f">-g</span> wrangler
+<span class="tok-k">wrangler</span> login        <span class="tok-c"># opens the browser to authorize</span></code></pre>
+    </div>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>You do not need a paid plan, a domain, or a credit card to follow along.</b> A custom domain is a nice finishing touch (Section&nbsp;10) but Cloudflare gives every project a free <code class="ic">*.pages.dev</code> / <code class="ic">*.workers.dev</code> URL to start.</p></div>
+  </section>
+
+  <!-- 04 -->
+  <section class="block" id="scaffold">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Scaffold the Astro project</h2></div>
+    <p>Start from Astro's blog template — it ships with content collections, a layout, and example posts so you have a working reader site in seconds.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">npm</span> create astro@latest my-blog <span class="tok-f">--</span> <span class="tok-f">--template</span> blog
+<span class="tok-k">cd</span> my-blog
+<span class="tok-k">npm</span> run dev        <span class="tok-c"># → http://localhost:4321</span></code></pre>
+    </div>
+    <p>Open the local URL and you'll see a complete blog. The structure that matters:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">📁<b>my-blog/</b></span><button class="copy">copy</button></div>
+<pre><code>src/
+  pages/            <span class="tok-c"># routes — each file is a URL</span>
+    index.astro     <span class="tok-c"># home (static)</span>
+    blog/[...slug]  <span class="tok-c"># post pages (static)</span>
+    admin/          <span class="tok-c"># we'll add this — SSR</span>
+  content/          <span class="tok-c"># content collections (markdown)</span>
+  layouts/
+  components/
+astro.config.mjs    <span class="tok-c"># adapter + output mode live here</span></code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>Prefer to write in plain Markdown files and never touch a database? You can stop after Section&nbsp;6 — that alone is a fast, free, statically-hosted blog. The admin panel and D1 (Sections 7–9) are for when you want to publish without a git commit.</p></div>
+  </section>
+
+  <!-- 05 -->
+  <section class="block" id="adapter">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Add the Cloudflare adapter</h2></div>
+    <p class="lead">The adapter is what teaches Astro to build for Cloudflare's runtime. Add it and switch the project to <strong>server output</strong> so individual pages can choose static or on-demand rendering.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">npx</span> astro add cloudflare
+<span class="tok-c"># installs @astrojs/cloudflare and patches astro.config.mjs</span></code></pre>
+    </div>
+    <p>Confirm your config sets <code class="ic">output: 'server'</code> with the Cloudflare adapter:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">js<b>astro.config.mjs</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> { defineConfig } <span class="tok-k">from</span> <span class="tok-s">'astro/config'</span>;
+<span class="tok-k">import</span> cloudflare <span class="tok-k">from</span> <span class="tok-s">'@astrojs/cloudflare'</span>;
+
+<span class="tok-k">export default</span> defineConfig({
+  output: <span class="tok-s">'server'</span>,                 <span class="tok-c">// dynamic by default…</span>
+  adapter: cloudflare({
+    platformProxy: { enabled: <span class="tok-k">true</span> }, <span class="tok-c">// D1/R2 work in `astro dev`</span>
+  }),
+});</code></pre>
+    </div>
+    <p>Now make the reader pages static again — they don't need a server. Add one line to each public page (or the layout they share):</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">astro<b>src/pages/index.astro</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-p">---</span>
+<span class="tok-k">export const</span> prerender = <span class="tok-k">true</span>;   <span class="tok-c">// bake this page to HTML at build</span>
+<span class="tok-c">// …your existing frontmatter…</span>
+<span class="tok-p">---</span></code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p><b>Default to static, opt into dynamic.</b> A clean rule of thumb: every reader route gets <code class="ic">prerender = true</code>; anything under <code class="ic">/admin</code> or <code class="ic">/api</code> stays server-rendered. Static pages cost you nothing to serve and can't be slow.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section class="block" id="content">
+    <div class="sec-head"><span class="sec-num">06</span><h2>The reader site</h2></div>
+    <p>The blog template already renders posts from a <strong>content collection</strong> — type-safe Markdown defined in <code class="ic">src/content.config.ts</code>. Each post page is generated at build time, so readers get pre-rendered HTML straight from cache.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">astro<b>src/pages/blog/[...slug].astro</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-p">---</span>
+<span class="tok-k">import</span> { getCollection } <span class="tok-k">from</span> <span class="tok-s">'astro:content'</span>;
+<span class="tok-k">import</span> BlogPost <span class="tok-k">from</span> <span class="tok-s">'../../layouts/BlogPost.astro'</span>;
+
+<span class="tok-k">export const</span> prerender = <span class="tok-k">true</span>;
+
+<span class="tok-c">// one static route per post</span>
+<span class="tok-k">export async function</span> <span class="tok-f">getStaticPaths</span>() {
+  <span class="tok-k">const</span> posts = <span class="tok-k">await</span> getCollection(<span class="tok-s">'blog'</span>);
+  <span class="tok-k">return</span> posts.map((post) => ({
+    params: { slug: post.id },
+    props: post,
+  }));
+}
+
+<span class="tok-k">const</span> post = Astro.props;
+<span class="tok-k">const</span> { Content } = <span class="tok-k">await</span> post.render();
+<span class="tok-p">---</span>
+&lt;<span class="tok-f">BlogPost</span> {...post.data}&gt;
+  &lt;<span class="tok-f">Content</span> /&gt;
+&lt;/<span class="tok-f">BlogPost</span>&gt;</code></pre>
+    </div>
+    <p>That's a complete, free blog already: write Markdown, commit, deploy. The next sections add the ability to <strong>publish from a browser</strong> instead of from git.</p>
+  </section>
+
+  <!-- 07 -->
+  <section class="block" id="data">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Store posts in D1</h2></div>
+    <p class="lead">To write posts without committing files, you need somewhere to put them. <strong>Cloudflare D1</strong> is a serverless SQLite database that lives at the edge — perfect for a blog's modest data, and free up to generous limits.</p>
+    <h3>Create the database</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">wrangler</span> d1 create blog-db
+<span class="tok-c"># copy the database_id it prints into wrangler.toml</span></code></pre>
+    </div>
+    <p>Bind it so both the deployed Worker and local <code class="ic">astro dev</code> can reach it:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">toml<b>wrangler.toml</b></span><button class="copy">copy</button></div>
+<pre><code>name = <span class="tok-s">"my-blog"</span>
+compatibility_date = <span class="tok-s">"2026-06-01"</span>
+
+[[d1_databases]]
+binding = <span class="tok-s">"DB"</span>                 <span class="tok-c"># available as env.DB</span>
+database_name = <span class="tok-s">"blog-db"</span>
+database_id = <span class="tok-s">"&lt;paste-id-here&gt;"</span></code></pre>
+    </div>
+    <h3>Define the schema</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">sql<b>schema.sql</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">CREATE TABLE IF NOT EXISTS</span> posts (
+  id         <span class="tok-k">INTEGER PRIMARY KEY</span> <span class="tok-k">AUTOINCREMENT</span>,
+  slug       <span class="tok-k">TEXT</span> <span class="tok-k">UNIQUE NOT NULL</span>,
+  title      <span class="tok-k">TEXT</span> <span class="tok-k">NOT NULL</span>,
+  body       <span class="tok-k">TEXT</span> <span class="tok-k">NOT NULL</span>,        <span class="tok-c">-- markdown</span>
+  published  <span class="tok-k">INTEGER</span> <span class="tok-k">DEFAULT</span> <span class="tok-n">0</span>,      <span class="tok-c">-- 0 draft / 1 live</span>
+  created_at <span class="tok-k">TEXT</span> <span class="tok-k">DEFAULT</span> (datetime(<span class="tok-s">'now'</span>))
+);</code></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-c"># apply locally for dev, then to the live db</span>
+<span class="tok-k">wrangler</span> d1 execute blog-db <span class="tok-f">--local</span> <span class="tok-f">--file</span>=./schema.sql
+<span class="tok-k">wrangler</span> d1 execute blog-db <span class="tok-f">--remote</span> <span class="tok-f">--file</span>=./schema.sql</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>Reach the binding inside any SSR page or endpoint via <code class="ic">Astro.locals.runtime.env.DB</code>. With <code class="ic">platformProxy</code> enabled, the same code talks to a local SQLite file during <code class="ic">astro dev</code> and to real D1 in production.</p></div>
+  </section>
+
+  <!-- 08 -->
+  <section class="block" id="admin">
+    <div class="sec-head"><span class="sec-num">08</span><h2>The server-rendered admin panel</h2></div>
+    <p class="lead">This is the half of the app that runs on demand. A small set of <code class="ic">/admin</code> routes reads and writes D1, so you can draft, edit, and publish from any browser — no rebuild required.</p>
+    <h3>A form to create a post</h3>
+    <div class="code">
+      <div class="code-head"><span class="tag">astro<b>src/pages/admin/new.astro</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-p">---</span>
+<span class="tok-c">// SSR (no prerender) — runs on every request</span>
+<span class="tok-k">if</span> (Astro.request.method === <span class="tok-s">'POST'</span>) {
+  <span class="tok-k">const</span> form = <span class="tok-k">await</span> Astro.request.formData();
+  <span class="tok-k">const</span> db = Astro.locals.runtime.env.DB;
+
+  <span class="tok-k">await</span> db
+    .prepare(<span class="tok-s">'INSERT INTO posts (slug, title, body, published) VALUES (?, ?, ?, ?)'</span>)
+    .bind(
+      String(form.get(<span class="tok-s">'slug'</span>)),
+      String(form.get(<span class="tok-s">'title'</span>)),
+      String(form.get(<span class="tok-s">'body'</span>)),
+      form.get(<span class="tok-s">'publish'</span>) ? <span class="tok-n">1</span> : <span class="tok-n">0</span>,
+    )
+    .run();
+
+  <span class="tok-k">return</span> Astro.redirect(<span class="tok-s">'/admin'</span>);
+}
+<span class="tok-p">---</span>
+&lt;<span class="tok-f">form</span> method="POST"&gt;
+  &lt;<span class="tok-f">input</span> name="title" placeholder="Title" required /&gt;
+  &lt;<span class="tok-f">input</span> name="slug"  placeholder="my-first-post" required /&gt;
+  &lt;<span class="tok-f">textarea</span> name="body" placeholder="Write markdown…"&gt;&lt;/<span class="tok-f">textarea</span>&gt;
+  &lt;<span class="tok-f">label</span>&gt;&lt;<span class="tok-f">input</span> type="checkbox" name="publish" /&gt; Publish&lt;/<span class="tok-f">label</span>&gt;
+  &lt;<span class="tok-f">button</span>&gt;Save&lt;/<span class="tok-f">button</span>&gt;
+&lt;/<span class="tok-f">form</span>&gt;</code></pre>
+    </div>
+    <p>Render published posts on the reader side by querying D1 from a dynamic post route — or, if you want them cached as static HTML, read D1 in <code class="ic">getStaticPaths</code> at build time and redeploy on publish via a deploy hook.</p>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Sanitize and validate input.</b> Always use bound parameters (<code class="ic">.bind(...)</code>) as above — never string-concatenate SQL. Escape or sanitize any HTML you render from post bodies if you allow raw HTML in Markdown.</p></div>
+  </section>
+
+  <!-- 09 -->
+  <section class="block" id="auth">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Lock down the admin</h2></div>
+    <p>The reader site is public; the admin must not be. The simplest, zero-code option on this stack is <strong>Cloudflare Access</strong> — put a login wall in front of <code class="ic">/admin/*</code> at the network edge, before requests ever reach your app.</p>
+    <ul>
+      <li>In the Cloudflare dashboard, open <strong>Zero Trust → Access → Applications</strong>.</li>
+      <li>Add a self-hosted app for the path <code class="ic">your-blog.example.com/admin</code>.</li>
+      <li>Create a policy that allows only your email (one-time PIN or Google login).</li>
+    </ul>
+    <p>Access is free for up to 50 users — far more than a personal blog needs. Prefer to handle auth in code instead? A signed, http-only session cookie checked in middleware works too:</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">ts<b>src/middleware.ts</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">import</span> { defineMiddleware } <span class="tok-k">from</span> <span class="tok-s">'astro:middleware'</span>;
+
+<span class="tok-k">export const</span> onRequest = defineMiddleware(<span class="tok-k">async</span> (ctx, next) => {
+  <span class="tok-k">if</span> (ctx.url.pathname.startsWith(<span class="tok-s">'/admin'</span>)) {
+    <span class="tok-k">const</span> session = ctx.cookies.get(<span class="tok-s">'session'</span>)?.value;
+    <span class="tok-k">if</span> (!isValid(session)) <span class="tok-k">return</span> ctx.redirect(<span class="tok-s">'/login'</span>);
+  }
+  <span class="tok-k">return</span> next();
+});</code></pre>
+    </div>
+    <div class="callout"><span class="ico">▎i</span><p>Cloudflare Access is the recommended path here — it's free, requires no auth code to maintain, and the protected routes never even execute for an unauthenticated visitor. Less code is less to get wrong.</p></div>
+  </section>
+
+  <!-- 10 -->
+  <section class="block" id="deploy">
+    <div class="sec-head"><span class="sec-num">10</span><h2>Deploy to the edge</h2></div>
+    <p class="lead">One command builds your Astro app and pushes it to Cloudflare's network. Within seconds it's live in hundreds of cities.</p>
+    <div class="code">
+      <div class="code-head"><span class="tag">⌘<b>Terminal</b></span><button class="copy">copy</button></div>
+<pre><code><span class="tok-k">npm</span> run build          <span class="tok-c"># static pages + the Worker bundle</span>
+<span class="tok-k">wrangler</span> deploy        <span class="tok-c"># → https://my-blog.&lt;you&gt;.workers.dev</span></code></pre>
+    </div>
+    <h3>Continuous deploys from Git</h3>
+    <p>Connect the repo in the Cloudflare dashboard (<strong>Workers &amp; Pages → Create → connect to Git</strong>) and every push to <code class="ic">main</code> builds and ships automatically — no CI to configure.</p>
+    <h3>A custom domain (still free)</h3>
+    <ul>
+      <li>Add your domain to Cloudflare (free plan) and point the nameservers.</li>
+      <li>In the project's settings, add a <strong>custom domain</strong> route — DNS and TLS are handled for you.</li>
+      <li>Don't own a domain? The <code class="ic">*.workers.dev</code> URL is permanent and free.</li>
+    </ul>
+    <div class="callout"><span class="ico">▎i</span><p>Static reader pages are cached at the edge automatically. For SSR routes you control freshness with <code class="ic">Cache-Control</code> headers — but the admin should stay uncached so you always see live data.</p></div>
+  </section>
+
+  <!-- 11 -->
+  <section class="block" id="cost">
+    <div class="sec-head"><span class="sec-num">11</span><h2>The zero-dollar math</h2></div>
+    <p class="lead">Here's why the monthly bill is genuinely $0 for a personal blog. Each piece of the stack has a free tier that comfortably covers normal traffic.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Service</th><th>What it does</th><th>Free tier (typical)</th></tr></thead>
+        <tbody>
+          <tr><td>Workers</td><td>Runs the app</td><td>100,000 requests / day</td></tr>
+          <tr><td>Static assets</td><td>Reader HTML/CSS/JS</td><td>Unlimited, served from cache</td></tr>
+          <tr><td>D1</td><td>Posts database</td><td>5 GB · 5M reads / day</td></tr>
+          <tr><td>R2</td><td>Image storage</td><td>10 GB · zero egress fees</td></tr>
+          <tr><td>Access</td><td>Admin login wall</td><td>Up to 50 users</td></tr>
+          <tr><td>DNS + TLS</td><td>Domain &amp; HTTPS</td><td>Included free</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A blog that serves thousands of readers a day sits well inside every one of these limits. You only start paying if the project grows into something much larger — at which point the same architecture scales up without a rewrite.</p>
+    <div class="callout warn"><span class="ico">▎!</span><p><b>Limits drift.</b> Cloudflare adjusts free-tier allowances over time. Treat the numbers above as ballpark and check the current limits on Cloudflare's pricing pages before you rely on them.</p></div>
+  </section>
+
+  <!-- 12 -->
+  <section class="block" id="next">
+    <div class="sec-head"><span class="sec-num">12</span><h2>Where to go next</h2></div>
+    <p>You now have a serverless blog: static for readers, server-rendered for you, all on the edge for nothing a month. From here:</p>
+    <ul>
+      <li>Add an <strong>R2 bucket</strong> and an upload route so the admin can attach images.</li>
+      <li>Generate an <strong>RSS feed</strong> and a sitemap (<code class="ic">@astrojs/rss</code>, <code class="ic">@astrojs/sitemap</code>) — both pre-rendered.</li>
+      <li>Render Markdown post bodies from D1 with a library like <code class="ic">marked</code> or Astro's own pipeline.</li>
+      <li>Wire a <strong>deploy hook</strong> so hitting "Publish" triggers a rebuild and re-caches the static pages.</li>
+      <li>Add full-text search over posts with D1 — still inside the free tier.</li>
+    </ul>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<footer>
+<div class="wrap">
+  <div class="foot-grid">
+    <div>
+      <h4>Source article</h4>
+      <a href="https://scopecreeplabs.com/blog/building-a-serverless-blog-with-astro-cloudflare-and-zero-monthly-cost/" target="_blank" rel="noopener">Building a Serverless Blog with Astro, Cloudflare &amp; Zero Monthly Cost ↗</a>
+    </div>
+    <div>
+      <h4>Astro</h4>
+      <a href="https://astro.build" target="_blank" rel="noopener">astro.build ↗</a>
+      <a href="https://docs.astro.build/en/guides/integrations-guide/cloudflare/" target="_blank" rel="noopener">Cloudflare adapter docs ↗</a>
+      <a href="https://docs.astro.build/en/guides/on-demand-rendering/" target="_blank" rel="noopener">On-demand rendering ↗</a>
+    </div>
+    <div>
+      <h4>Cloudflare</h4>
+      <a href="https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/" target="_blank" rel="noopener">Deploy an Astro site ↗</a>
+      <a href="https://developers.cloudflare.com/d1/" target="_blank" rel="noopener">D1 database ↗</a>
+      <a href="https://developers.cloudflare.com/cloudflare-one/applications/" target="_blank" rel="noopener">Access (Zero Trust) ↗</a>
+    </div>
+  </div>
+  <p class="foot-note">A community field guide based on the Scope Creep Labs article — not affiliated with Astro or Cloudflare. Commands and free-tier limits reflect the stack as of 2026 and may drift; always check the official docs. Everything here runs on free tiers, but quotas and pricing are Cloudflare's to change.</p>
+</div>
+</footer>
+
+<script>
+/* ---- copy buttons ---- */
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('pre code');
+    navigator.clipboard.writeText(code.innerText.trim()).then(()=>{
+      const t=btn.textContent;btn.textContent='copied ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+/* ---- scroll-spy nav ---- */
+const links=[...document.querySelectorAll('aside.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id); if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section.block').forEach(s=>spy.observe(s));
+
+/* ---- hero terminal typewriter ---- */
+(function(){
+  const el=document.getElementById('term');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const lines=[
+    {t:'$ ',c:'npm create astro@latest my-blog -- --template blog',cls:'cmd'},
+    {t:'',c:'Project ready  ✓',cls:'ok',pre:true},
+    {t:'$ ',c:'npx astro add cloudflare',cls:'cmd'},
+    {t:'',c:'Added @astrojs/cloudflare  ✓',cls:'ok',pre:true},
+    {t:'$ ',c:'wrangler deploy',cls:'cmd'},
+    {t:'',c:'Published to the edge — $0/month 🌎',cls:'out',pre:true},
+  ];
+  if(reduce){
+    el.innerHTML=lines.map(l=>`<div class="ln"><span class="pr">${l.t}</span><span class="${l.cls}">${l.c}</span></div>`).join('');
+    return;
+  }
+  let li=0;
+  function nextLine(){
+    if(li>=lines.length){
+      const cur=document.createElement('span');cur.className='cursor';
+      el.lastChild.appendChild(cur);return;
+    }
+    const l=lines[li++];
+    const row=document.createElement('div');row.className='ln';
+    row.innerHTML=`<span class="pr">${l.t}</span><span class="${l.cls}"></span>`;
+    el.appendChild(row);
+    const target=row.querySelector('span:last-child');
+    if(l.pre){ // print instantly (program output)
+      let i=0;const speed=10;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,speed);else setTimeout(nextLine,260);
+      })();
+    }else{
+      let i=0;
+      (function type(){
+        target.textContent=l.c.slice(0,i++);
+        if(i<=l.c.length)setTimeout(type,28);else setTimeout(nextLine,360);
+      })();
+    }
+  }
+  nextLine();
+})();
+</script>
+</body>
+</html>
