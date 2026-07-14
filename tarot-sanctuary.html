@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarot Sanctuary — candlelit WebGL cards, no assets required</title>
+<meta name="description" content="A recreation of the tarot-card lighting effect: pointer-driven candlelight over normal / roughness / height maps, 3D tilt, and a draw choreography — with every texture map generated in-page on canvas. Zero image downloads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Hanken+Grotesk:wght@400;500;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#090b10;            /* near-black, cool (moonlit) */
+  --bg-2:#0c0f16;
+  --surface:#10141d;
+  --surface-2:#161c27;
+  --border:rgba(143,199,255,.13);
+  --border-strong:rgba(143,199,255,.28);
+  --text:#e9eef6;
+  --muted:#93a0b4;
+  --faint:#5e6a7c;
+  --accent:#8fc7ff;        /* moonlight ice-blue */
+  --accent-bright:#cde6ff;
+  --warn:#ffb45e;          /* candle gold — the card's key light */
+  --grid:rgba(143,199,255,.05);
+  --disp:'Bricolage Grotesque',sans-serif;
+  --body:'Hanken Grotesk',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{background:var(--bg);color:var(--text);font-family:var(--body);line-height:1.6;overflow-x:hidden}
+
+/* ------- atmosphere ------- */
+.bg-grid,.bg-glow,.bg-noise{position:fixed;inset:0;pointer-events:none}
+.bg-grid{
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%);
+  mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%);
+  z-index:0;
+}
+.bg-glow{
+  background:
+    radial-gradient(600px 420px at 12% -6%,rgba(143,199,255,.16),transparent 60%),
+    radial-gradient(680px 460px at 88% -8%,rgba(255,180,94,.13),transparent 60%);
+  z-index:0;
+}
+.bg-noise{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:.04;mix-blend-mode:overlay;z-index:2;
+}
+
+/* ------- top bar ------- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(9,11,16,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topbar-in{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px);height:58px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-mark{width:20px;height:20px;border-radius:5px;background:linear-gradient(135deg,var(--accent),var(--warn))}
+.brand-name{font-family:var(--mono);font-size:13px;color:var(--text);letter-spacing:.02em}
+.topnav{display:flex;gap:26px}
+.topnav a{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;letter-spacing:.04em}
+.topnav a:hover{color:var(--accent)}
+@media (max-width:780px){.topnav{display:none}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px);position:relative;z-index:1}
+
+/* ------- hero ------- */
+.hero{padding:150px 0 84px;position:relative;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(28px,5vw,64px);align-items:center}
+@media (max-width:920px){.hero-grid{grid-template-columns:1fr}.hero{padding-top:120px}}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);border:1px solid var(--border-strong);border-radius:999px;padding:7px 15px;background:rgba(143,199,255,.06)}
+.eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+h1{font-family:var(--disp);font-weight:800;font-size:clamp(2.7rem,6.6vw,5.2rem);line-height:1.0;letter-spacing:-.02em;margin:26px 0 20px}
+.glow{color:var(--warn);font-style:italic;text-shadow:0 0 34px rgba(255,180,94,.45)}
+.hero-sub{color:var(--muted);max-width:560px;font-size:1.06rem}
+.hero-sub b{color:var(--text);font-weight:700}
+.actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:30px}
+.action-primary{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:#0a0c12;background:linear-gradient(135deg,var(--accent-bright),var(--accent));border:0;border-radius:9px;padding:13px 22px;cursor:pointer;font-weight:500}
+.action-primary:hover{filter:brightness(1.08)}
+.action-ghost{font-family:var(--mono);font-size:13px;letter-spacing:.04em;color:var(--accent);background:transparent;border:1px solid var(--border-strong);border-radius:9px;padding:13px 22px;text-decoration:none}
+.action-ghost:hover{background:rgba(143,199,255,.07)}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:38px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;min-width:118px}
+.stat .num{font-family:var(--disp);font-weight:800;font-size:1.7rem;color:var(--accent);line-height:1}
+.stat .lbl{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:7px;letter-spacing:.02em}
+
+/* ------- card stage ------- */
+.card-col{display:flex;justify-content:center;padding:20px 0}
+.card-stage{position:relative;width:min(320px,74vw);aspect-ratio:640/986;perspective:1100px}
+.card-shadow{position:absolute;left:6%;right:6%;top:14%;bottom:2%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),transparent 72%);filter:blur(20px);z-index:0}
+.card-mover{position:absolute;inset:0;z-index:1;will-change:transform}
+.card-tilt{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+.card-obj,.card-back{position:absolute;inset:0;border-radius:14px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 0 0 1px rgba(143,199,255,.08)}
+.card-back{transform:rotateY(180deg)}
+.card-obj canvas,.card-back canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* ------- fly-out clone ------- */
+.card-fly{position:fixed;z-index:60;pointer-events:none;perspective:1100px;filter:drop-shadow(0 24px 30px rgba(0,0,0,.5))}
+.card-fly-inner{width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
+.fly-face{position:absolute;inset:0;border-radius:14px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fly-face img,.fly-face canvas{width:100%;height:100%;display:block}
+.fly-back{transform:rotateY(180deg)}
+
+/* ------- sections ------- */
+.block{border-top:1px solid var(--border);padding:54px 0}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:14px}
+.sec-num{font-family:var(--mono);font-size:13px;color:var(--accent)}
+h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+p.lead{color:var(--muted);font-size:1.08rem;max-width:66ch;margin-top:8px}
+p,li{color:#ccd6e4;max-width:66ch}
+strong{color:var(--text)}
+code.ic{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 6px;color:var(--accent-bright)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:28px}
+.cardp{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;transition:transform .25s,border-color .25s}
+.cardp:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+.cardp .idx{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.cardp h4{font-family:var(--disp);font-weight:600;font-size:1.06rem;margin:10px 0 6px}
+.cardp p{color:var(--muted);font-size:.92rem;max-width:none}
+.callout{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:16px 18px;margin-top:26px;display:flex;gap:12px}
+.callout .ico{font-family:var(--mono);color:var(--accent);flex:none}
+.callout p{color:var(--muted);font-size:.95rem;max-width:none}
+
+/* ------- footer ------- */
+footer{border-top:1px solid var(--border);margin-top:40px;padding:44px 0 60px}
+.foot-links{display:flex;gap:56px;flex-wrap:wrap;margin-bottom:30px}
+.foot-links h5{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--faint);text-transform:uppercase;letter-spacing:.16em;margin-bottom:12px}
+.foot-links a{display:block;font-family:var(--mono);font-size:12.5px;color:var(--muted);text-decoration:none;margin-bottom:8px}
+.foot-links a:hover{color:var(--accent)}
+.foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);max-width:70ch;line-height:1.7}
+.foot-note a{color:var(--muted);text-decoration:none;border-bottom:1px solid var(--border-strong)}
+.foot-note a:hover{color:var(--accent)}
+
+/* ------- entrance ------- */
+.rv{opacity:0;animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{animation:none;opacity:1}
+  .eyebrow .dot{animation:none}
+  .cardp{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="bg-noise" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="brand" href="#">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">tarot.sanctuary</span>
+    </a>
+    <nav class="topnav">
+      <a href="#how">how it works</a>
+      <a href="#top">the card</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow rv"><span class="dot"></span>interactive // webgl2 experiment</span>
+        <h1 class="rv" style="animation-delay:.08s">Tarot, lit by <span class="glow">candlelight</span>.</h1>
+        <p class="hero-sub rv" style="animation-delay:.16s">
+          Move your pointer and a warm key light rakes across the card — gilt linework
+          catches, matte ink stays quiet. The trick: a transparent <b>WebGL2 canvas</b> over the
+          card, shading <b>normal / roughness / height maps</b> per pixel. Every card and every
+          map is <b>drawn in-page on canvas</b> — this file loads zero image assets.
+        </p>
+        <div class="actions rv" style="animation-delay:.24s">
+          <button class="action-primary" type="button">draw a card ↻</button>
+          <a class="action-ghost" href="#how">how it works ↓</a>
+        </div>
+        <div class="stats rv" style="animation-delay:.32s">
+          <div class="stat"><div class="num">4</div><div class="lbl">// cards in deck</div></div>
+          <div class="stat"><div class="num">5×4</div><div class="lbl">// maps, drawn in-page</div></div>
+          <div class="stat"><div class="num">0</div><div class="lbl">// art downloads</div></div>
+        </div>
+      </div>
+      <div class="card-col rv" style="animation-delay:.2s">
+        <div class="card-stage">
+          <div class="card-shadow" id="cardShadow" aria-hidden="true"></div>
+          <div class="card-mover" id="cardMover">
+            <div class="card-tilt" id="cardTilt">
+              <div class="card-obj" role="img" aria-label="The Sun — tarot card."></div>
+              <div class="card-back" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="how">
+    <div class="sec-head"><span class="sec-num">01</span><h2>How the effect works</h2></div>
+    <p class="lead">Four pieces, all vanilla JS — no libraries, no build step, no textures fetched over the network.</p>
+    <div class="cards">
+      <div class="cardp">
+        <div class="idx">gen / canvas-pbr</div>
+        <h4>Procedural card + maps</h4>
+        <p>Each card's linework is drawn once on a 2D canvas, then tinted gold for the diffuse. The <em>height</em> map is that same ink blurred; <em>normals</em> come from its gradients; <em>roughness</em> drops wherever there's gilt.</p>
+      </div>
+      <div class="cardp">
+        <div class="idx">gl / key-light</div>
+        <h4>Pointer-driven candle</h4>
+        <p>A fragment shader lights the card with a warm key that follows the cursor: wrapped diffuse, roughness-shaped specular, height-boosted sheen, and a faint rim when the light rakes from the side.</p>
+      </div>
+      <div class="cardp">
+        <div class="idx">css / tilt</div>
+        <h4>3D tilt + shadow</h4>
+        <p>The mount sways idly and leans a few degrees toward the pointer (<code class="ic">rotateX/rotateY</code>). The drop shadow slides <em>away</em> from the light, lagging with the same easing as the tilt.</p>
+      </div>
+      <div class="cardp">
+        <div class="idx">seq / draw</div>
+        <h4>Draw choreography</h4>
+        <p>Drawing spawns a fixed-position clone that flips to its back and sails off the top-left, while the real card — parked below the hero, back showing — rises from bottom center and flips over as it settles.</p>
+      </div>
+    </div>
+    <div class="callout">
+      <span class="ico">▎i</span>
+      <p>Live-tune the lighting from the console: <code class="ic">CardLighting.set('uSpecStr', 0.6)</code> — or <code class="ic">CardLighting.back.set(...)</code> for the card back. Uniforms: <code class="ic">uParallax</code>, <code class="ic">uLightZ</code>, <code class="ic">uNormalStr</code>, <code class="ic">uSpecStr</code>, <code class="ic">uDiffuseAmt</code>, <code class="ic">uAmbientAmt</code>, <code class="ic">uLightColor</code>.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-links">
+      <div>
+        <h5>source / inspiration</h5>
+        <a href="https://html.non.io/tarot/" target="_blank" rel="noopener">html.non.io/tarot — original effect ↗</a>
+        <a href="https://non.io" target="_blank" rel="noopener">non.io ↗</a>
+      </div>
+      <div>
+        <h5>techniques</h5>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext" target="_blank" rel="noopener">WebGL2 rendering context — MDN ↗</a>
+        <a href="https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API" target="_blank" rel="noopener">Canvas 2D API — MDN ↗</a>
+      </div>
+    </div>
+    <p class="foot-note">
+      // tarot sanctuary — a self-contained recreation of the card-lighting effect from
+      <a href="https://html.non.io/tarot/" target="_blank" rel="noopener">html.non.io/tarot</a>.
+      shader approach, tilt behavior and draw choreography adapted from the original's source by non.io;
+      card artwork and the in-page PBR-map generation are original to this page (the original loads
+      pre-baked .webp texture maps). webgl2 required for lighting; without it the flat cards still
+      tilt and flip. honors prefers-reduced-motion.
+    </p>
+  </div>
+</footer>
+
+<script>
+/* ============================================================================
+   Tarot Sanctuary — self-contained recreation of https://html.non.io/tarot/
+   (shader approach, tilt + draw choreography adapted from non.io's original;
+   card art and in-page PBR-map generation are new — the original loads
+   pre-baked .webp texture maps.)
+   1. Card faces (and back) are drawn on 2D canvas: white "ink" linework,
+      tinted gold for the diffuse. Height = blurred ink, normals = height
+      gradients, roughness = matte paper minus the gilt.
+   2. A transparent WebGL2 canvas overlays each face; a candle-warm key
+      light follows the pointer over those maps.
+   3. Tilt/sway, dynamic shadow, and the draw choreography mirror the
+      original: fly-out clone off the top-left, new card rises from below.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  const hero = document.querySelector('.hero');
+  const stage = document.querySelector('.card-stage');
+  const mover = document.getElementById('cardMover');
+  const tilt = document.getElementById('cardTilt');
+  const shadow = document.getElementById('cardShadow');
+  const obj = tilt && tilt.querySelector('.card-obj');
+  const backMount = tilt && tilt.querySelector('.card-back');
+  if (!hero || !stage || !mover || !tilt || !obj || !backMount) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const ART_W = 640, ART_H = 986;   // card art resolution
+  const MAP_W = 320, MAP_H = 493;   // PBR maps at half res
+
+  /* ==================================================== card art on canvas */
+
+  function cv(w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    return c;
+  }
+
+  /* Ink canvas tinted with a style (gold gradient, gray...) via source-in. */
+  function tinted(ink, styleFor) {
+    const c = cv(ink.width, ink.height);
+    const x = c.getContext('2d');
+    x.drawImage(ink, 0, 0);
+    x.globalCompositeOperation = 'source-in';
+    x.fillStyle = styleFor(x, c);
+    x.fillRect(0, 0, c.width, c.height);
+    return c;
+  }
+
+  const grain = (() => {
+    const c = cv(160, 160);
+    const x = c.getContext('2d');
+    const d = x.createImageData(160, 160);
+    for (let i = 0; i < d.data.length; i += 4) {
+      const v = 100 + (Math.random() * 70) | 0;
+      d.data[i] = d.data[i + 1] = d.data[i + 2] = v;
+      d.data[i + 3] = 255;
+    }
+    x.putImageData(d, 0, 0);
+    return c;
+  })();
+
+  function spacedText(x, text, cx, y, spacing) {
+    x.textAlign = 'left';
+    x.textBaseline = 'middle';
+    const ws = [...text].map((ch) => x.measureText(ch).width);
+    let px = cx - (ws.reduce((a, b) => a + b, 0) + spacing * (text.length - 1)) / 2;
+    [...text].forEach((ch, i) => { x.fillText(ch, px, y); px += ws[i] + spacing; });
+  }
+
+  function starPath(x, cx, cy, n, ro, ri, rot) {
+    x.beginPath();
+    for (let i = 0; i < n * 2; i++) {
+      const r = i % 2 ? ri : ro;
+      const a = (rot === undefined ? -Math.PI / 2 : rot) + (i * Math.PI) / n;
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      i ? x.lineTo(px, py) : x.moveTo(px, py);
+    }
+    x.closePath();
+  }
+
+  /* Shared frame: borders, corner marks, numeral, title. Drawn as white ink. */
+  function drawFrame(x, numeral, title) {
+    x.strokeStyle = x.fillStyle = '#fff';
+    x.lineWidth = 5;
+    x.strokeRect(20, 20, ART_W - 40, ART_H - 40);
+    x.lineWidth = 1.6;
+    x.strokeRect(34, 34, ART_W - 68, ART_H - 68);
+    // corner marks
+    [[34, 34, 1, 1], [ART_W - 34, 34, -1, 1], [34, ART_H - 34, 1, -1], [ART_W - 34, ART_H - 34, -1, -1]]
+      .forEach(([px, py, sx, sy]) => {
+        x.lineWidth = 2.4;
+        x.beginPath();
+        x.moveTo(px + 8 * sx, py + 26 * sy); x.lineTo(px + 8 * sx, py + 8 * sy); x.lineTo(px + 26 * sx, py + 8 * sy);
+        x.stroke();
+        x.beginPath(); x.arc(px + 17 * sx, py + 17 * sy, 3, 0, Math.PI * 2); x.fill();
+      });
+    x.font = '600 30px Georgia, "Times New Roman", serif';
+    spacedText(x, numeral, ART_W / 2, 92, 8);
+    x.font = '600 36px Georgia, "Times New Roman", serif';
+    spacedText(x, title.toUpperCase(), ART_W / 2, ART_H - 92, 9);
+    // rules beside the title
+    const tw = x.measureText(title.toUpperCase()).width + title.length * 9 + 30;
+    x.lineWidth = 1.6;
+    [[54, ART_W / 2 - tw / 2 - 16], [ART_W / 2 + tw / 2 + 16, ART_W - 54]].forEach(([a, b]) => {
+      if (b > a) { x.beginPath(); x.moveTo(a, ART_H - 92); x.lineTo(b, ART_H - 92); x.stroke(); }
+    });
+  }
+
+  const ICONS = {
+    theSun(x, cx, cy) {
+      x.lineWidth = 6;
+      x.beginPath(); x.arc(cx, cy, 96, 0, Math.PI * 2); x.stroke();
+      x.beginPath(); x.arc(cx, cy, 30, 0, Math.PI * 2); x.fill();
+      for (let i = 0; i < 16; i++) {
+        const a = (i * Math.PI) / 8;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        if (i % 2 === 0) {                      // straight ray
+          x.lineWidth = 6;
+          x.beginPath(); x.moveTo(cx + dx * 118, cy + dy * 118); x.lineTo(cx + dx * 182, cy + dy * 182); x.stroke();
+        } else {                                // wavy ray
+          x.lineWidth = 3.2;
+          x.beginPath();
+          for (let s = 0; s <= 4; s++) {
+            const r = 116 + s * 13.5;
+            const off = (s % 2 ? 7 : -7) * (s === 0 || s === 4 ? 0 : 1);
+            const px = cx + dx * r - dy * off, py = cy + dy * r + dx * off;
+            s ? x.lineTo(px, py) : x.moveTo(px, py);
+          }
+          x.stroke();
+        }
+      }
+      for (let i = 0; i < 12; i++) {
+        const a = (i * Math.PI) / 6 + Math.PI / 12;
+        x.beginPath(); x.arc(cx + Math.cos(a) * 214, cy + Math.sin(a) * 214, 3.5, 0, Math.PI * 2); x.fill();
+      }
+    },
+    theMoon(x, cx, cy) {
+      // filled crescent, opening right
+      x.beginPath();
+      x.arc(cx, cy, 100, -Math.PI / 2, Math.PI / 2, true);
+      x.arc(cx + 125.4, cy, 160.4, 2.468, 3.815, false);
+      x.closePath(); x.fill();
+      // stars to the right
+      [[118, -110, 20], [158, -18, 26], [122, 78, 17], [66, 150, 13], [40, -170, 13]].forEach(([ox, oy, r]) => {
+        starPath(x, cx + ox, cy + oy, 4, r, r * 0.36); x.fill();
+      });
+      // drops falling below
+      x.lineWidth = 3;
+      [[-60, 190], [0, 214], [60, 190]].forEach(([ox, oy]) => {
+        x.beginPath(); x.arc(cx + ox, cy + oy, 9, 0, Math.PI * 2); x.stroke();
+      });
+    },
+    theStar(x, cx, cy) {
+      starPath(x, cx, cy, 8, 138, 56); x.fill();
+      const spots = [[-165, -120, 18], [170, -95, 22], [-150, 95, 15], [155, 130, 18], [-40, -195, 14], [60, 195, 15], [-190, 0, 12]];
+      spots.forEach(([ox, oy, r]) => { starPath(x, cx + ox, cy + oy, 4, r, r * 0.36); x.fill(); });
+    },
+    theWheel(x, cx, cy) {
+      x.lineWidth = 7;
+      x.beginPath(); x.arc(cx, cy, 138, 0, Math.PI * 2); x.stroke();
+      x.lineWidth = 2;
+      x.beginPath(); x.arc(cx, cy, 100, 0, Math.PI * 2); x.stroke();
+      x.beginPath(); x.arc(cx, cy, 19, 0, Math.PI * 2); x.fill();
+      x.lineWidth = 4.5;
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4;
+        x.beginPath();
+        x.moveTo(cx + Math.cos(a) * 19, cy + Math.sin(a) * 19);
+        x.lineTo(cx + Math.cos(a) * 100, cy + Math.sin(a) * 100);
+        x.stroke();
+      }
+      x.lineWidth = 2.4;
+      for (let i = 0; i < 24; i++) {
+        const a = (i * Math.PI) / 12;
+        x.beginPath();
+        x.moveTo(cx + Math.cos(a) * 112, cy + Math.sin(a) * 112);
+        x.lineTo(cx + Math.cos(a) * 128, cy + Math.sin(a) * 128);
+        x.stroke();
+      }
+      [[0, -170], [0, 170], [-170, 0], [170, 0]].forEach(([ox, oy]) => {
+        starPath(x, cx + ox, cy + oy, 4, 14, 5); x.fill();
+      });
+    },
+    cardBack(x) {
+      // diamond lattice clipped to the inner frame, cleared for a medallion
+      x.save();
+      x.beginPath(); x.rect(42, 42, ART_W - 84, ART_H - 84); x.clip();
+      x.lineWidth = 1.5;
+      for (let k = -ART_H; k < ART_W + ART_H; k += 46) {
+        x.beginPath(); x.moveTo(k, 0); x.lineTo(k + ART_H, ART_H); x.stroke();
+        x.beginPath(); x.moveTo(k, 0); x.lineTo(k - ART_H, ART_H); x.stroke();
+      }
+      x.restore();
+      const cx = ART_W / 2, cy = ART_H / 2;
+      x.save();
+      x.globalCompositeOperation = 'destination-out';
+      x.beginPath(); x.arc(cx, cy, 168, 0, Math.PI * 2); x.fill();
+      x.restore();
+      x.lineWidth = 5;
+      x.beginPath(); x.arc(cx, cy, 152, 0, Math.PI * 2); x.stroke();
+      x.lineWidth = 1.8;
+      x.beginPath(); x.arc(cx, cy, 132, 0, Math.PI * 2); x.stroke();
+      starPath(x, cx, cy, 8, 92, 36); x.fill();
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI) / 4 + Math.PI / 8;
+        x.beginPath(); x.arc(cx + Math.cos(a) * 142, cy + Math.sin(a) * 142, 4, 0, Math.PI * 2); x.fill();
+      }
+    },
+  };
+
+  /* Ink → { diffuse, normal, rough, height } canvases. */
+  function buildMaps(ink) {
+    // diffuse: night-indigo card stock + grain + gold ink
+    const diffuse = cv(ART_W, ART_H);
+    let x = diffuse.getContext('2d');
+    let g = x.createRadialGradient(ART_W / 2, ART_H * 0.42, 60, ART_W / 2, ART_H / 2, ART_H * 0.72);
+    g.addColorStop(0, '#1c1930');
+    g.addColorStop(1, '#0f0d1c');
+    x.fillStyle = g;
+    x.fillRect(0, 0, ART_W, ART_H);
+    x.globalAlpha = 0.08;
+    x.globalCompositeOperation = 'overlay';
+    x.fillStyle = x.createPattern(grain, 'repeat');
+    x.fillRect(0, 0, ART_W, ART_H);
+    x.globalAlpha = 1;
+    x.globalCompositeOperation = 'source-over';
+    const gold = tinted(ink, (gx, c) => {
+      const gg = gx.createLinearGradient(0, 0, 0, c.height);
+      gg.addColorStop(0, '#ecd08a');
+      gg.addColorStop(0.55, '#d2a856');
+      gg.addColorStop(1, '#b3873c');
+      return gg;
+    });
+    x.drawImage(gold, 0, 0);
+    g = x.createRadialGradient(ART_W / 2, ART_H / 2, ART_H * 0.28, ART_W / 2, ART_H / 2, ART_H * 0.74);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,.34)');
+    x.fillStyle = g;
+    x.fillRect(0, 0, ART_W, ART_H);
+
+    // height: blurred ink (raised gilt) on black, at map res
+    const hc = cv(MAP_W, MAP_H);
+    x = hc.getContext('2d');
+    x.fillStyle = '#000';
+    x.fillRect(0, 0, MAP_W, MAP_H);
+    x.filter = 'blur(1px)';
+    x.drawImage(ink, 0, 0, MAP_W, MAP_H);
+    x.filter = 'none';
+    const hd = x.getImageData(0, 0, MAP_W, MAP_H).data;
+    const H = new Float32Array(MAP_W * MAP_H);
+    for (let i = 0; i < H.length; i++) H[i] = (hd[i * 4] / 255) * 0.9 + Math.random() * 0.05;
+
+    // normal: central differences over the height field
+    const nc = cv(MAP_W, MAP_H);
+    x = nc.getContext('2d');
+    const nd = x.createImageData(MAP_W, MAP_H);
+    const K = 2.2; // bump strength baked into the map
+    for (let py = 0; py < MAP_H; py++) {
+      for (let px = 0; px < MAP_W; px++) {
+        const i = py * MAP_W + px;
+        const hl = H[py * MAP_W + Math.max(0, px - 1)];
+        const hr = H[py * MAP_W + Math.min(MAP_W - 1, px + 1)];
+        const hu = H[Math.max(0, py - 1) * MAP_W + px];
+        const hdn = H[Math.min(MAP_H - 1, py + 1) * MAP_W + px];
+        // maps are uploaded with FLIP_Y, so +y(image, down) becomes +v(gl, up)-facing
+        const nx = (hl - hr) * K;
+        const ny = (hdn - hu) * K;
+        const len = Math.hypot(nx, ny, 1);
+        nd.data[i * 4]     = ((nx / len) * 0.5 + 0.5) * 255;
+        nd.data[i * 4 + 1] = ((ny / len) * 0.5 + 0.5) * 255;
+        nd.data[i * 4 + 2] = ((1 / len) * 0.5 + 0.5) * 255;
+        nd.data[i * 4 + 3] = 255;
+      }
+    }
+    x.putImageData(nd, 0, 0);
+
+    // roughness: matte paper, gilt lines glossy
+    const rc = cv(MAP_W, MAP_H);
+    x = rc.getContext('2d');
+    x.fillStyle = '#cfcfcf';
+    x.fillRect(0, 0, MAP_W, MAP_H);
+    x.filter = 'blur(0.6px)';
+    x.drawImage(tinted(ink, () => '#3a3a3a'), 0, 0, MAP_W, MAP_H);
+    x.filter = 'none';
+
+    // grayscale height canvas for upload
+    const hcc = cv(MAP_W, MAP_H);
+    x = hcc.getContext('2d');
+    const hout = x.createImageData(MAP_W, MAP_H);
+    for (let i = 0; i < H.length; i++) {
+      const v = Math.min(255, H[i] * 255);
+      hout.data[i * 4] = hout.data[i * 4 + 1] = hout.data[i * 4 + 2] = v;
+      hout.data[i * 4 + 3] = 255;
+    }
+    x.putImageData(hout, 0, 0);
+
+    return { diffuse, normal: nc, rough: rc, height: hcc };
+  }
+
+  function makeCard(spec) {
+    const ink = cv(ART_W, ART_H);
+    const x = ink.getContext('2d');
+    x.strokeStyle = x.fillStyle = '#fff';
+    x.lineJoin = x.lineCap = 'round';
+    if (spec.back) {
+      x.lineWidth = 5;
+      x.strokeRect(20, 20, ART_W - 40, ART_H - 40);
+      x.lineWidth = 1.6;
+      x.strokeRect(34, 34, ART_W - 68, ART_H - 68);
+      ICONS.cardBack(x);
+    } else {
+      drawFrame(x, spec.numeral, spec.name);
+      x.strokeStyle = x.fillStyle = '#fff';
+      ICONS[spec.slug](x, ART_W / 2, ART_H * 0.46);
+    }
+    return Object.assign({ name: spec.name || 'card back' }, buildMaps(ink));
+  }
+
+  const DECK = [
+    makeCard({ slug: 'theSun',   name: 'The Sun',   numeral: 'XIX' }),
+    makeCard({ slug: 'theMoon',  name: 'The Moon',  numeral: 'XVIII' }),
+    makeCard({ slug: 'theStar',  name: 'The Star',  numeral: 'XVII' }),
+    makeCard({ slug: 'theWheel', name: 'The Wheel', numeral: 'X' }),
+  ];
+  const BACK = makeCard({ back: true });
+  let currentCard = 0; // The Sun opens
+
+  /* Flat 2D base layers — the no-WebGL / snapshot fallback. */
+  function baseLayer(mount, art) {
+    const c = cv(ART_W, ART_H);
+    c.className = 'base';
+    c.setAttribute('aria-hidden', 'true');
+    c.getContext('2d').drawImage(art.diffuse, 0, 0);
+    mount.appendChild(c);
+    return c;
+  }
+  const frontBase = baseLayer(obj, DECK[currentCard]);
+  const backBase = baseLayer(backMount, BACK);
+
+  /* ======================================================== 3D card tilt */
+
+  const MAX_TILT = 4.2;
+  const IDLE_AMP = 1.3;
+  let targetRX = 0, targetRY = 0, curRX = 0, curRY = 0;
+  let pointerActive = false;
+
+  window.addEventListener('mousemove', (e) => {
+    const r = obj.getBoundingClientRect();
+    if (r.width < 1) return;
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const nx = Math.max(-1, Math.min(1, (e.clientX - cx) / (window.innerWidth * 0.5)));
+    const ny = Math.max(-1, Math.min(1, (e.clientY - cy) / (window.innerHeight * 0.5)));
+    targetRY = nx * MAX_TILT;
+    targetRX = -ny * MAX_TILT;
+    pointerActive = true;
+  }, { passive: true });
+
+  let flipAngle = 0, moveX = 0, moveY = 0, moveRZ = 0, moveScale = 1, shadowMul = 1;
+
+  const tweens = [];
+  function tween(dur, apply, done) {
+    tweens.push({ t0: performance.now(), dur, apply, done });
+  }
+  function stepTweens(now) {
+    for (let i = tweens.length - 1; i >= 0; i--) {
+      const tw = tweens[i];
+      const p = Math.min(1, (now - tw.t0) / tw.dur);
+      tw.apply(p);
+      if (p >= 1) { tweens.splice(i, 1); if (tw.done) tw.done(); }
+    }
+  }
+  const easeOut3 = (p) => 1 - Math.pow(1 - p, 3);
+
+  function applyCardTransforms() {
+    mover.style.transform =
+      'translate3d(' + moveX.toFixed(2) + 'px,' + moveY.toFixed(2) + 'px,0)' +
+      ' rotate(' + moveRZ.toFixed(3) + 'deg) scale(' + moveScale.toFixed(4) + ')';
+    tilt.style.transform =
+      'rotateX(' + curRX.toFixed(3) + 'deg) rotateY(' + (curRY + flipAngle).toFixed(3) + 'deg)';
+  }
+
+  function tiltFrame(now) {
+    if (!reduceMotion) {
+      const t = now * 0.001;
+      const idleX = Math.sin(t * 0.42) * IDLE_AMP;
+      const idleY = Math.cos(t * 0.31) * IDLE_AMP;
+      const goalRX = targetRX + (pointerActive ? idleX * 0.45 : idleX);
+      const goalRY = targetRY + (pointerActive ? idleY * 0.45 : idleY);
+      curRX += (goalRX - curRX) * 0.055;
+      curRY += (goalRY - curRY) * 0.055;
+      stepTweens(now);
+      applyCardTransforms();
+
+      if (shadow) {
+        const nx = curRY / MAX_TILT;
+        const ny = -curRX / MAX_TILT;
+        const d = Math.min(1, Math.hypot(nx, ny));
+        shadow.style.transform =
+          'translate3d(' + (-nx * 34).toFixed(1) + 'px,' + (22 - ny * 26).toFixed(1) + 'px,0)' +
+          ' scale(' + (1 + d * 0.05).toFixed(3) + ')';
+        shadow.style.opacity = ((1 - d * 0.3) * shadowMul).toFixed(3);
+      }
+    }
+    requestAnimationFrame(tiltFrame);
+  }
+  requestAnimationFrame(tiltFrame);
+
+  /* ------------------------------------------------------ draw a card */
+
+  // Upgraded below when WebGL is running.
+  let applyCard = (card) => {
+    frontBase.getContext('2d').drawImage(card.diffuse, 0, 0);
+    obj.setAttribute('aria-label', card.name + ' — tarot card.');
+  };
+  let snapshotFront = () => {
+    const copy = cv(ART_W, ART_H);
+    copy.getContext('2d').drawImage(frontBase, 0, 0);
+    return copy;
+  };
+
+  function spawnFlyOut(rect) {
+    const fly = document.createElement('div');
+    fly.className = 'card-fly';
+    fly.style.left = rect.left + 'px';
+    fly.style.top = rect.top + 'px';
+    fly.style.width = rect.width + 'px';
+    fly.style.height = rect.height + 'px';
+
+    const inner = document.createElement('div');
+    inner.className = 'card-fly-inner';
+    const front = document.createElement('div');
+    front.className = 'fly-face';
+    front.appendChild(snapshotFront());
+    const back = document.createElement('div');
+    back.className = 'fly-face fly-back';
+    const backCopy = cv(ART_W, ART_H);
+    backCopy.getContext('2d').drawImage(BACK.diffuse, 0, 0);
+    back.appendChild(backCopy);
+    inner.appendChild(front);
+    inner.appendChild(back);
+    fly.appendChild(inner);
+    document.body.appendChild(fly);
+
+    const ex = -(rect.left + rect.width + 80);
+    const ey = -(rect.top + rect.height + 80);
+
+    tween(680, (p) => {
+      const q = p * p;
+      const r = easeOut3(p);
+      inner.style.transform =
+        'translate3d(' + (ex * q).toFixed(1) + 'px,' + (ey * q).toFixed(1) + 'px,0)' +
+        ' rotate(' + (-16 * r).toFixed(2) + 'deg)' +
+        ' rotateY(' + (-195 * r).toFixed(2) + 'deg)' +
+        ' scale(' + (1 - 0.14 * q).toFixed(4) + ')';
+    }, () => fly.remove());
+  }
+
+  let flipping = false;
+
+  function drawCard() {
+    if (flipping) return;
+    flipping = true;
+    let next = Math.floor(Math.random() * (DECK.length - 1));
+    if (next >= currentCard) next += 1;
+    currentCard = next;
+    const card = DECK[next];
+
+    if (reduceMotion) {
+      applyCard(card);
+      flipping = false;
+      return;
+    }
+
+    const rect = stage.getBoundingClientRect();
+    spawnFlyOut(rect);
+
+    // Park the real card below the hero, back showing, centered on the page.
+    const heroRect = hero.getBoundingClientRect();
+    moveX = window.innerWidth / 2 - (rect.left + rect.width / 2);
+    moveY = (heroRect.bottom + rect.height * 0.6) - (rect.top + rect.height / 2);
+    moveRZ = 9;
+    moveScale = 0.95;
+    flipAngle = 180;
+    shadowMul = 0;
+    applyCardTransforms();
+
+    applyCard(card);
+    setTimeout(() => {
+      const sx = moveX, sy = moveY, srz = moveRZ;
+      tween(920, (p) => {
+        const m = easeOut3(p);
+        moveX = sx * (1 - m);
+        moveY = sy * (1 - m);
+        moveRZ = srz * (1 - m);
+        moveScale = 0.95 + 0.05 * m;
+        const f = Math.min(1, Math.max(0, (p - 0.12) / 0.72));
+        flipAngle = 180 * (1 - easeOut3(f));
+      }, () => {
+        flipAngle = 0;
+        tween(260, (p) => { shadowMul = p; });
+        flipping = false;
+      });
+    }, 170);
+  }
+
+  const drawBtn = document.querySelector('.action-primary');
+  if (drawBtn) drawBtn.addEventListener('click', (e) => { e.preventDefault(); drawCard(); });
+
+  /* ==================================================== WebGL lighting */
+
+  const VERT = `#version 300 es
+  in vec2 aPos;
+  out vec2 vUv;
+  void main() {
+    vUv = aPos * 0.5 + 0.5;
+    gl_Position = vec4(aPos, 0.0, 1.0);
+  }`;
+
+  const FRAG = `#version 300 es
+  precision highp float;
+  in vec2 vUv;
+  out vec4 frag;
+
+  uniform sampler2D uDiffuse;
+  uniform sampler2D uNormal;
+  uniform sampler2D uRough;
+  uniform sampler2D uHeight;
+
+  uniform vec2  uMouse;
+  uniform float uHasMouse;
+  uniform float uParallax;
+  uniform float uLightZ;
+  uniform float uNormalStr;
+  uniform float uSpecStr;
+  uniform float uDiffuseAmt;
+  uniform float uAmbientAmt;
+  uniform vec3  uLightColor;
+  uniform vec3  uAmbientColor;
+  uniform float uMotion;
+
+  void main() {
+    vec2 uv = vUv;
+
+    float h0 = texture(uHeight, uv).r;
+    if (uMotion > 0.5 && uHasMouse > 0.5) {
+      vec2 viewOff = (uMouse - vec2(0.5)) * 2.0;
+      uv = clamp(uv - viewOff * (h0 * uParallax), 0.001, 0.999);
+    }
+
+    vec4 diff = texture(uDiffuse, uv);
+    float a = diff.a;
+    if (a < 0.004) { frag = vec4(0.0); return; }
+
+    vec3 albedo = diff.rgb;
+    float rough = texture(uRough, uv).r;
+    float h = texture(uHeight, uv).r;
+
+    vec3 nRaw = texture(uNormal, uv).xyz * 2.0 - 1.0;
+    nRaw.xy *= uNormalStr;
+    vec3 N = normalize(vec3(nRaw.xy, max(nRaw.z, 0.08)));
+
+    vec3 V = vec3(0.0, 0.0, 1.0);
+    float ambRelief = 0.74 + 0.26 * max(N.z, 0.0);
+    vec3 col = albedo * uAmbientColor * uAmbientAmt * ambRelief;
+
+    vec2 lightUv = (uHasMouse > 0.5) ? uMouse : vec2(0.44, 0.66);
+    vec3 L = normalize(vec3(lightUv.x - uv.x, lightUv.y - uv.y, uLightZ));
+    float ndl = max(dot(N, L), 0.0);
+    float wrap = ndl * 0.8 + 0.2;
+    col += albedo * uLightColor * (wrap * uDiffuseAmt);
+
+    vec3 H = normalize(L + V);
+    float shininess = mix(52.0, 6.0, clamp(rough, 0.0, 1.0));
+    float spec = pow(max(dot(N, H), 0.0), shininess);
+    spec *= (1.0 - rough * 0.85) * uSpecStr;
+    spec *= 0.82 + 0.34 * h;
+    col += uLightColor * spec;
+
+    float rim = pow(1.0 - max(dot(N, V), 0.0), 2.4);
+    float side = 1.0 - abs(L.z);
+    col += uLightColor * rim * side * 0.1 * (1.0 - rough * 0.5);
+
+    col = clamp(col, 0.0, 1.0);
+    frag = vec4(col * a, a);
+  }`;
+
+  /* One lit plane over a mount. flipMouseX mirrors the pointer for the back
+     face, whose plane is rotated 180° so screen-left is texture-right. */
+  function createLitLayer(mount, flipMouseX) {
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+
+    const gl = canvas.getContext('webgl2', {
+      alpha: true,
+      antialias: false,
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: true,
+      powerPreference: 'default',
+    });
+    if (!gl) return null;
+
+    function compile(type, src) {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error('card shader:', gl.getShaderInfoLog(s));
+        return null;
+      }
+      return s;
+    }
+
+    const vs = compile(gl.VERTEX_SHADER, VERT);
+    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    if (!vs || !fs) return null;
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error('card lighting link:', gl.getProgramInfoLog(prog));
+      return null;
+    }
+    gl.useProgram(prog);
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, 'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const U = {};
+    ['uDiffuse', 'uNormal', 'uRough', 'uHeight',
+      'uMouse', 'uHasMouse', 'uParallax', 'uLightZ', 'uNormalStr',
+      'uSpecStr', 'uDiffuseAmt', 'uAmbientAmt', 'uLightColor', 'uAmbientColor',
+      'uMotion',
+    ].forEach((name) => { U[name] = gl.getUniformLocation(prog, name); });
+
+    gl.uniform1i(U.uDiffuse, 0);
+    gl.uniform1i(U.uNormal, 1);
+    gl.uniform1i(U.uRough, 2);
+    gl.uniform1i(U.uHeight, 3);
+
+    // Candlelight key over a cool moonlit ambient.
+    gl.uniform3f(U.uLightColor, 1.0, 0.92, 0.78);
+    gl.uniform3f(U.uAmbientColor, 0.82, 0.83, 0.88);
+    gl.uniform1f(U.uAmbientAmt, 0.56);
+    gl.uniform1f(U.uDiffuseAmt, 0.62);
+    gl.uniform1f(U.uSpecStr, 0.34);
+    gl.uniform1f(U.uNormalStr, 1.35);
+    gl.uniform1f(U.uLightZ, 0.5);
+    gl.uniform1f(U.uParallax, reduceMotion ? 0.0 : 0.0034);
+    gl.uniform1f(U.uMotion, reduceMotion ? 0.0 : 1.0);
+    gl.uniform1f(U.uHasMouse, 0.0);
+    gl.uniform2f(U.uMouse, 0.44, 0.66);
+
+    function makeTex(unit) {
+      const t = gl.createTexture();
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+      return t;
+    }
+
+    const texDiffuse = makeTex(0);
+    const texNormal = makeTex(1);
+    const texRough = makeTex(2);
+    const texHeight = makeTex(3);
+
+    mount.appendChild(canvas);
+
+    function upload(tex, unit, image) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+    }
+
+    let ready = false;
+    let needsDraw = true;
+    const mouse = { x: 0.44, y: 0.66 };
+    let hasMouse = false;
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0, 0, 0, 0);
+
+    function resize() {
+      // Layout size, not getBoundingClientRect: the mount spends time mid-flip
+      // and mid-flight, and transformed rects would thrash the buffer.
+      const w0 = canvas.offsetWidth;
+      const h0 = canvas.offsetHeight;
+      if (w0 < 2 || h0 < 2) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = Math.max(1, Math.round(w0 * dpr));
+      const h = Math.max(1, Math.round(h0 * dpr));
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        needsDraw = true;
+      }
+    }
+
+    function draw() {
+      resize();
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.uniform2f(U.uMouse, flipMouseX ? 1 - mouse.x : mouse.x, mouse.y);
+      gl.uniform1f(U.uHasMouse, hasMouse ? 1.0 : 0.0);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texDiffuse);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, texNormal);
+      gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, texRough);
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, texHeight);
+      gl.bindVertexArray(vao);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    function frame() {
+      if (!ready) return;
+      if (needsDraw) {
+        needsDraw = false;
+        draw();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    return {
+      canvas,
+      setTextures(set) {
+        upload(texDiffuse, 0, set.diffuse);
+        upload(texNormal, 1, set.normal);
+        upload(texRough, 2, set.rough);
+        upload(texHeight, 3, set.height);
+        needsDraw = true;
+        if (!ready) {
+          ready = true;
+          resize();
+          requestAnimationFrame(frame);
+        }
+      },
+      pointer(e) {
+        if (!ready) return;
+        const r = canvas.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) return;
+        // Allow overshoot so the key light can rake in from off-card.
+        const x = (e.clientX - r.left) / r.width;
+        const y = 1.0 - (e.clientY - r.top) / r.height;
+        mouse.x = Math.min(1.4, Math.max(-0.4, x));
+        mouse.y = Math.min(1.4, Math.max(-0.4, y));
+        hasMouse = true;
+        needsDraw = true;
+      },
+      drawNow() { if (ready) draw(); },
+      redraw() { needsDraw = true; },
+      onResize() { if (ready) { resize(); needsDraw = true; } },
+      setUniform(name, args) {
+        if (!U[name]) return;
+        gl.useProgram(prog);
+        if (name === 'uMouse' && args.length >= 2) { mouse.x = args[0]; mouse.y = args[1]; hasMouse = true; }
+        if (name === 'uHasMouse' && args.length >= 1) hasMouse = args[0] > 0.5;
+        if (args.length === 1) gl.uniform1f(U[name], args[0]);
+        else if (args.length === 2) gl.uniform2f(U[name], args[0], args[1]);
+        else if (args.length === 3) gl.uniform3f(U[name], args[0], args[1], args[2]);
+        needsDraw = true;
+      },
+    };
+  }
+
+  const frontLayer = createLitLayer(obj, false);
+  const backLayer = createLitLayer(backMount, true);
+  const layers = [frontLayer, backLayer].filter(Boolean);
+
+  if (layers.length && !reduceMotion) {
+    window.addEventListener('mousemove', (e) => {
+      layers.forEach((L) => L.pointer(e));
+    }, { passive: true });
+  }
+  window.addEventListener('resize', () => {
+    layers.forEach((L) => L.onResize());
+  }, { passive: true });
+
+  if (frontLayer) {
+    frontLayer.setTextures(DECK[currentCard]);
+
+    applyCard = (card) => {
+      frontBase.getContext('2d').drawImage(card.diffuse, 0, 0);
+      obj.setAttribute('aria-label', card.name + ' — tarot card.');
+      frontLayer.setTextures(card);
+    };
+
+    snapshotFront = () => {
+      const src = frontLayer.canvas;
+      if (src.width > 1 && src.height > 1) {
+        try {
+          frontLayer.drawNow(); // make sure the buffer is current
+          const copy = cv(src.width, src.height);
+          copy.getContext('2d').drawImage(src, 0, 0);
+          return copy;
+        } catch (err) { /* fall through to the flat card */ }
+      }
+      const copy = cv(ART_W, ART_H);
+      copy.getContext('2d').drawImage(frontBase, 0, 0);
+      return copy;
+    };
+  }
+  if (backLayer) backLayer.setTextures(BACK);
+
+  // Console knobs for live tuning (front face; CardLighting.back for the back).
+  function knobs(layer) {
+    return layer ? {
+      set(name, ...args) { layer.setUniform(name, args); },
+      redraw() { layer.redraw(); },
+    } : null;
+  }
+  window.CardLighting = Object.assign(knobs(frontLayer) || {}, { back: knobs(backLayer) });
+})();
+</script>
+</body>
+</html>
