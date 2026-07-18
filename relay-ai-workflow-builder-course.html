@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay — Build an AI Workflow Builder like n8n · Video Field Notes</title>
+<meta name="description" content="Field notes on Code With Antonio's 2026 full-stack course: building Relay, an n8n-style AI workflow automation platform with a real cloud browser agent (Browserbase + Stagehand), Trigger.dev jobs, Liveblocks multiplayer, Clerk billing, and a Neon/Drizzle backend.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b080a;            /* near-black, warm, faint magenta cast */
+  --bg-2:#100a0e;
+  --surface:#170e13;
+  --surface-2:#1f1219;
+  --border:rgba(255,120,180,.12);
+  --border-strong:rgba(255,120,180,.26);
+  --text:#f5eef2;
+  --muted:#a98c9b;
+  --faint:#6f5563;
+  --accent:#ff5fa8;        /* magenta-pink */
+  --accent-bright:#ffa3cc;
+  --warn:#ffb547;          /* amber contrast for warnings */
+  --grid:rgba(255,95,168,.045);
+  --disp:'Bricolage Grotesque',sans-serif;
+  --body:'Hanken Grotesk',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+body{background:var(--bg);color:var(--text);font-family:var(--body);line-height:1.6;overflow-x:hidden}
+
+/* ---- atmosphere ---- */
+.bg-grid,.bg-glow,.bg-noise{position:fixed;inset:0;pointer-events:none}
+.bg-grid{z-index:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:64px 64px;-webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%);mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 40%,transparent 100%)}
+.bg-glow{z-index:0;background:radial-gradient(ellipse 640px 420px at 12% -4%,rgba(255,95,168,.16),transparent 60%),radial-gradient(ellipse 560px 380px at 88% -6%,rgba(255,181,71,.10),transparent 60%)}
+.bg-noise{z-index:1;opacity:.04;mix-blend-mode:overlay;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ---- top bar ---- */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(11,8,10,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1180px;margin:0 auto;padding:14px clamp(16px,4vw,40px);display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-mark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#8f2f63)}
+.brand-name{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);letter-spacing:.02em}
+.brand-name span{color:var(--accent)}
+.topnav{display:flex;gap:26px}
+.topnav a{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;letter-spacing:.04em;transition:color .2s}
+.topnav a:hover{color:var(--accent)}
+@media(max-width:780px){.topnav{display:none}}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px);position:relative;z-index:2}
+
+/* ---- hero ---- */
+.hero{padding:150px 0 70px}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-bright);border:1px solid var(--border-strong);border-radius:999px;padding:7px 15px;background:rgba(255,95,168,.06)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,95,168,.5)}50%{opacity:.6;box-shadow:0 0 0 7px rgba(255,95,168,0)}}
+h1{font-family:var(--disp);font-weight:800;font-size:clamp(2.7rem,8.2vw,6.4rem);line-height:1.0;letter-spacing:-.02em;margin:26px 0 22px;max-width:15ch}
+.glow{color:var(--accent);font-style:italic;text-shadow:0 0 28px rgba(255,95,168,.55),0 0 70px rgba(255,95,168,.28)}
+.sub{color:var(--muted);font-size:clamp(1.02rem,1.6vw,1.18rem);max-width:620px}
+.sub b{color:var(--text);font-weight:600}
+
+/* terminal */
+.term{margin-top:44px;border:1px solid var(--border-strong);border-radius:12px;background:#0d0709;overflow:hidden;max-width:760px;box-shadow:0 24px 60px -30px rgba(255,95,168,.25)}
+.term-head{display:flex;align-items:center;gap:8px;padding:11px 16px;background:rgba(255,95,168,.05);border-bottom:1px solid var(--border)}
+.tl{width:11px;height:11px;border-radius:50%}
+.tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+.term-title{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-left:8px;letter-spacing:.06em}
+.term-body{padding:20px 22px;font-family:var(--mono);font-size:13px;line-height:1.9;min-height:196px}
+.term-body .ln{display:block;white-space:pre-wrap}
+.t-p{color:var(--accent)}
+.t-d{color:var(--muted)}
+.t-ok{color:#9fe6a0}
+.t-c{color:var(--faint);font-style:italic}
+.caret{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:44px;max-width:860px}
+.stat{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:20px 20px 16px}
+.stat-n{font-family:var(--disp);font-weight:800;font-size:2rem;color:var(--accent);letter-spacing:-.02em}
+.stat-l{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:4px;letter-spacing:.05em}
+
+/* entrance */
+.rv{opacity:0;animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}.d4{animation-delay:.34s}.d5{animation-delay:.44s}
+
+/* ---- shell ---- */
+.shell{display:grid;grid-template-columns:226px 1fr;gap:48px;padding:30px 0 80px}
+@media(max-width:920px){.shell{grid-template-columns:1fr}.toc{display:none}}
+.toc{position:sticky;top:100px;align-self:start;padding-top:22px}
+.toc-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--faint);margin-bottom:16px}
+.toc a{display:flex;gap:10px;font-family:var(--mono);font-size:12.5px;color:var(--muted);text-decoration:none;padding:7px 0 7px 14px;border-left:2px solid transparent;transition:color .2s,border-color .2s}
+.toc a .n{color:var(--faint)}
+.toc a:hover{color:var(--text)}
+.toc a.active{color:var(--accent);border-left-color:var(--accent)}
+.toc a.active .n{color:var(--accent)}
+
+/* ---- sections ---- */
+.block{border-top:1px solid var(--border);padding:54px 0;scroll-margin-top:90px}
+.sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:20px}
+.sec-num{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)}
+h2{font-family:var(--disp);font-weight:800;font-size:clamp(1.7rem,4vw,2.7rem);letter-spacing:-.02em;line-height:1.05}
+h3{font-family:var(--disp);font-weight:600;font-size:1.25rem;margin:34px 0 12px}
+h4{font-family:var(--disp);font-weight:600;font-size:1.02rem}
+p,li{color:#dcccd5;max-width:66ch}
+p{margin-bottom:16px}
+p.lead{color:var(--muted);font-size:1.08rem;margin-bottom:26px}
+ul,ol{padding-left:22px;margin-bottom:16px}
+li{margin-bottom:8px}
+li::marker{color:var(--accent)}
+strong{color:var(--text)}
+a.link{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(255,95,168,.35)}
+a.link:hover{border-bottom-color:var(--accent)}
+code.ic{font-family:var(--mono);font-size:.85em;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;color:var(--accent-bright)}
+
+/* code blocks */
+.code{border:1px solid var(--border);border-radius:12px;background:#0d0709;margin:22px 0;overflow:hidden}
+.code-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,95,168,.05);border-bottom:1px solid var(--border)}
+.code-title{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.05em;display:flex;align-items:center;gap:8px}
+.code-title::before{content:'❯';color:var(--accent)}
+.copy-btn{font-family:var(--mono);font-size:11px;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:6px;padding:5px 11px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{color:var(--text);border-color:var(--border-strong)}
+.copy-btn.ok{color:#9fe6a0;border-color:rgba(159,230,160,.4)}
+.code pre{padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.75}
+.tok-c{color:var(--faint);font-style:italic}
+.tok-k{color:var(--accent)}
+.tok-s{color:#9fe6a0}
+.tok-f{color:var(--accent-bright)}
+.tok-n{color:#e6b3ff}
+.tok-p{color:var(--muted)}
+
+/* callouts */
+.callout{border:1px solid var(--border);border-left:3px solid var(--accent);background:var(--surface);border-radius:10px;padding:18px 22px;margin:24px 0;max-width:72ch}
+.callout .co-icon{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em;display:block;margin-bottom:8px}
+.callout p{margin:0;font-size:.95rem}
+.callout.warn{border-left-color:var(--warn)}
+.callout.warn .co-icon{color:var(--warn)}
+
+/* tables */
+.table-wrap{border:1px solid var(--border);border-radius:12px;overflow-x:auto;margin:22px 0}
+table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:560px}
+th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);background:rgba(255,95,168,.05);text-align:left;padding:12px 18px;border-bottom:1px solid var(--border)}
+td{padding:12px 18px;border-bottom:1px solid var(--border);color:#dcccd5;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,95,168,.03)}
+td:first-child{font-family:var(--mono);font-size:.85rem;color:var(--accent-bright);white-space:nowrap}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:24px 0}
+.card{border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:20px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+.card .idx{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.08em;display:block;margin-bottom:10px}
+.card h4{margin-bottom:8px}
+.card p{font-size:.88rem;color:var(--muted);margin:0;line-height:1.5}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:50px 0 40px;position:relative;z-index:2}
+.foot-cols{display:flex;flex-wrap:wrap;gap:48px;margin-bottom:36px}
+.foot-col h5{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.18em;color:var(--faint);margin-bottom:14px}
+.foot-col a{display:block;font-size:.9rem;color:var(--muted);text-decoration:none;margin-bottom:9px;transition:color .2s}
+.foot-col a:hover{color:var(--accent)}
+.foot-note{font-family:var(--mono);font-size:11.5px;color:var(--faint);line-height:1.8;max-width:72ch}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .rv{animation:none;opacity:1}
+  .dot,.caret{animation:none}
+  .card:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-noise"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top">
+      <div class="brand-mark"></div>
+      <span class="brand-name">field<span>//</span>notes</span>
+    </a>
+    <nav class="topnav">
+      <a href="#video">video</a>
+      <a href="#relay">relay</a>
+      <a href="#agent">agent node</a>
+      <a href="#stack">stack</a>
+      <a href="#chapters">chapters</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <span class="eyebrow rv d1"><span class="dot"></span>video field notes // code with antonio · jul 2026</span>
+    <h1 class="rv d2">An AI agent that drives a <span class="glow">real browser</span>, on a canvas like n8n.</h1>
+    <p class="sub rv d3">Summary of the YouTube course <b>“Build an AI Workflow Builder like n8n”</b> by Code With Antonio — a full-stack build of <b>Relay</b>, a workflow automation SaaS whose Agent node takes over a real Chrome browser in the cloud, figures out each step on its own, and streams the run live back to the canvas.</p>
+
+    <div class="term rv d4" aria-hidden="true">
+      <div class="term-head">
+        <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+        <span class="term-title">relay — workflow run</span>
+      </div>
+      <div class="term-body" id="term"></div>
+    </div>
+
+    <div class="stats rv d5">
+      <div class="stat"><div class="stat-n">27</div><div class="stat-l">// chapters, setup → deploy</div></div>
+      <div class="stat"><div class="stat-n">1</div><div class="stat-l">// real chrome browser in the cloud</div></div>
+      <div class="stat"><div class="stat-n">9+</div><div class="stat-l">// services wired together</div></div>
+      <div class="stat"><div class="stat-n">100%</div><div class="stat-l">// deployed to production</div></div>
+    </div>
+  </section>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <aside class="toc" aria-label="Table of contents">
+      <div class="toc-title">Contents</div>
+      <a href="#video"><span class="n">01</span> The video</a>
+      <a href="#relay"><span class="n">02</span> What gets built</a>
+      <a href="#agent"><span class="n">03</span> The agent node</a>
+      <a href="#engine"><span class="n">04</span> Execution engine</a>
+      <a href="#multiplayer"><span class="n">05</span> Multiplayer canvas</a>
+      <a href="#stack"><span class="n">06</span> The stack</a>
+      <a href="#chapters"><span class="n">07</span> Chapter map</a>
+      <a href="#verdict"><span class="n">08</span> Who it's for</a>
+    </aside>
+
+    <div class="content">
+
+      <!-- 01 -->
+      <section class="block" id="video">
+        <div class="sec-head"><span class="sec-num">01</span><h2>The video</h2></div>
+        <p class="lead">One video, an entire SaaS: Code With Antonio's free full-course format applied to the hottest 2026 topic — browser-driving AI agents.</p>
+        <p><a class="link" href="https://www.youtube.com/watch?v=1hnyCQW-B4A">The video</a> is the YouTube release of Antonio's course <a class="link" href="https://www.codewithantonio.com/workshops/build-an-ai-workflow-builder-like-n8n-okxub">“Build an AI Workflow Builder like n8n”</a> (published mid-July 2026). Depending on when you loaded it, YouTube may have shown you an A/B-tested title — either <strong>“Build an AI Workflow Builder like N8N | Agentic Coding”</strong> or <strong>“How to Build AI Agents That Control Real Browsers | Full Stack SaaS Course 2026”</strong>. Same video.</p>
+        <p>It follows his usual long-form build formula: start from an empty folder, end with a deployed production app. The twist this time is twofold: the app itself is an <strong>automation platform</strong> (an n8n clone he calls <strong>Relay</strong>), and the course workflow leans on <strong>agentic coding</strong> — an AI coding agent is set up in chapter 2 and used throughout the build.</p>
+        <div class="callout">
+          <span class="co-icon">▎i</span>
+          <p>The course's own pitch line: give the agent a goal like <em>“configure a Porsche 911 and email me the link”</em> — then watch a cloud browser click through the configurator and a workflow email you the result.</p>
+        </div>
+      </section>
+
+      <!-- 02 -->
+      <section class="block" id="relay">
+        <div class="sec-head"><span class="sec-num">02</span><h2>What gets built</h2></div>
+        <p class="lead">Relay is a complete AI workflow automation platform — not a toy demo. Five pillars make up the product.</p>
+        <div class="cards">
+          <div class="card"><span class="idx">feat / canvas</span><h4>Drag-and-drop canvas</h4><p>An n8n-style node editor built with React Flow: triggers, action nodes, connections, a toolbar, and custom node UIs.</p></div>
+          <div class="card"><span class="idx">feat / agent</span><h4>Browser agent node</h4><p>A node that takes over a real Chrome browser in the cloud and autonomously clicks, scrolls, and reasons its way to a goal.</p></div>
+          <div class="card"><span class="idx">feat / runs</span><h4>Durable executions</h4><p>Every run is a background job with live, node-by-node status streamed back onto the canvas, plus a console panel and session replay.</p></div>
+          <div class="card"><span class="idx">feat / collab</span><h4>Real-time multiplayer</h4><p>Live cursors, names, and avatars on the canvas — multiple people editing the same workflow at once.</p></div>
+          <div class="card"><span class="idx">feat / saas</span><h4>The SaaS shell</h4><p>Auth, organizations, and billing; transactional email; error monitoring; and a production deployment at the end.</p></div>
+        </div>
+        <p>Workflows persist to Postgres, belong to organizations, and are executed server-side — so the finished product is architecturally honest: the canvas is just the editor, and the real work happens in a durable job queue.</p>
+      </section>
+
+      <!-- 03 -->
+      <section class="block" id="agent">
+        <div class="sec-head"><span class="sec-num">03</span><h2>The agent node</h2></div>
+        <p class="lead">The headline feature: an Agent node backed by Browserbase and Stagehand, driving a real Chrome session in the cloud.</p>
+        <p>Instead of scripting brittle selectors, the Agent node gets a <strong>natural-language goal</strong>. Stagehand (an AI browser-automation framework) plans and performs the actions — click, scroll, type, extract — while Browserbase hosts the actual headless-but-real Chrome session remotely.</p>
+<div class="code">
+  <div class="code-head"><span class="code-title">agent-node — the idea, distilled</span><button class="copy-btn">copy</button></div>
+  <pre><span class="tok-c">// what the Agent node effectively does per run</span>
+<span class="tok-k">const</span> session = <span class="tok-k">await</span> browserbase.<span class="tok-f">createSession</span>()   <span class="tok-c">// real Chrome, in the cloud</span>
+<span class="tok-k">const</span> agent   = stagehand.<span class="tok-f">agent</span>({ session })
+
+<span class="tok-k">await</span> agent.<span class="tok-f">execute</span>(<span class="tok-s">"configure a Porsche 911 and grab the share link"</span>)
+<span class="tok-c">// → agent decides each step itself: navigate, click, scroll, extract</span>
+
+<span class="tok-k">return</span> { output: agent.result, replayUrl: session.<span class="tok-f">replay</span>() }  <span class="tok-c">// nothing is a black box</span></pre>
+</div>
+        <p>Because it's a real browser session, every run can be <strong>replayed</strong>: you watch exactly what the agent saw and did, frame by frame. The course wires that replay into Relay's UI (chapter 22), which turns "trust me, the agent did it" into an auditable recording.</p>
+        <div class="callout warn">
+          <span class="co-icon">▎!</span>
+          <p>Both Browserbase and Stagehand are paid/hosted-tier services (free tiers exist). Following along end-to-end means creating accounts for roughly nine external services — budget setup time for that.</p>
+        </div>
+      </section>
+
+      <!-- 04 -->
+      <section class="block" id="engine">
+        <div class="sec-head"><span class="sec-num">04</span><h2>Execution engine</h2></div>
+        <p class="lead">Runs are durable background jobs on Trigger.dev — the canvas only watches.</p>
+        <p>When you hit run, Relay hands the workflow to <strong>Trigger.dev</strong>, which executes it as a durable job: long-running, retryable, and independent of the browser tab that started it. The course builds out:</p>
+        <ul>
+          <li><strong>Node-by-node live status</strong> — execution state streams back to the canvas in real time, lighting up each node as it runs (chapter 18).</li>
+          <li><strong>Data passthrough</strong> — outputs of one node become inputs of the next, the core mechanic of any workflow engine (chapter 17).</li>
+          <li><strong>A console panel</strong> — logs and run output surfaced inside the app, not just in a dashboard elsewhere (chapter 21).</li>
+          <li><strong>An email node</strong> — sends via Resend, closing the loop on the "…and email me the link" demo (chapter 20).</li>
+        </ul>
+        <p>This is the part of the course with the most transferable architecture: the trigger → durable job → live status → replay pipeline applies to almost any AI product, not just workflow builders.</p>
+      </section>
+
+      <!-- 05 -->
+      <section class="block" id="multiplayer">
+        <div class="sec-head"><span class="sec-num">05</span><h2>Multiplayer canvas</h2></div>
+        <p class="lead">The canvas is fully collaborative via Liveblocks — a Figma-style presence layer over React Flow.</p>
+        <p>Three chapters (11–13) integrate <strong>Liveblocks</strong>: authenticating users into rooms, then rendering <strong>live cursors, names, and avatars</strong> for everyone editing a workflow. Combined with Clerk organizations, you get the standard B2B collaboration story — teammates in the same org share and co-edit workflows in real time.</p>
+        <p>It's a deliberately thin slice of multiplayer (presence rather than full CRDT document sync), which keeps the chapter count honest while still demoing well.</p>
+      </section>
+
+      <!-- 06 -->
+      <section class="block" id="stack">
+        <div class="sec-head"><span class="sec-num">06</span><h2>The stack</h2></div>
+        <p class="lead">A very 2026 stack: managed services for everything, glue code in Next.js.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Layer</th><th>Tool</th><th>Role in Relay</th></tr></thead>
+            <tbody>
+              <tr><td>framework</td><td>Next.js + React</td><td>App shell, dashboard, API routes</td></tr>
+              <tr><td>canvas</td><td>React Flow</td><td>Node editor: triggers, actions, custom nodes</td></tr>
+              <tr><td>agent</td><td>Browserbase + Stagehand</td><td>Cloud Chrome sessions + AI browser control</td></tr>
+              <tr><td>jobs</td><td>Trigger.dev</td><td>Durable workflow executions, live run status</td></tr>
+              <tr><td>realtime</td><td>Liveblocks</td><td>Multiplayer presence: cursors, names, avatars</td></tr>
+              <tr><td>auth+billing</td><td>Clerk</td><td>Auth, organizations, subscription billing</td></tr>
+              <tr><td>database</td><td>Neon + Drizzle</td><td>Serverless Postgres, typed schema for workflows</td></tr>
+              <tr><td>email</td><td>Resend</td><td>Transactional email + the workflow email node</td></tr>
+              <tr><td>observability</td><td>Sentry</td><td>Error monitoring in production</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout">
+          <span class="co-icon">▎i</span>
+          <p>Notice what's absent: no self-hosted queue, no websocket server, no ORM migrations by hand-rolled SQL. Every hard infrastructure problem is delegated to a service — the course is as much about <em>composing</em> managed platforms as about writing code.</p>
+        </div>
+      </section>
+
+      <!-- 07 -->
+      <section class="block" id="chapters">
+        <div class="sec-head"><span class="sec-num">07</span><h2>Chapter map</h2></div>
+        <p class="lead">27 chapters, roughly four acts: foundation, canvas, execution, production.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Act</th><th>Chapters</th><th>What happens</th></tr></thead>
+            <tbody>
+              <tr><td>foundation</td><td>01–08</td><td>Project setup, agentic coding setup, Clerk auth + organizations, dashboard layout, Neon/Drizzle database, workflow page, Trigger.dev</td></tr>
+              <tr><td>canvas</td><td>09–14</td><td>React Flow canvas, custom nodes, Liveblocks setup + auth, names &amp; avatars, workflow toolbar</td></tr>
+              <tr><td>execution</td><td>15–22</td><td>Workflow execution, Browserbase agent, data passthrough, live run status, remaining nodes, email node, console panel, session replay</td></tr>
+              <tr><td>production</td><td>23–27</td><td>Billing, Sentry, polish, deployment, wrap-up</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Chapter 2 — <strong>“Agentic Coding Setup”</strong> — is the meta-layer: Antonio configures an AI coding agent as part of the workflow and builds the rest of the course with it in the loop, which is what the “Agentic Coding” title variant refers to.</p>
+      </section>
+
+      <!-- 08 -->
+      <section class="block" id="verdict">
+        <div class="sec-head"><span class="sec-num">08</span><h2>Who it's for</h2></div>
+        <p class="lead">Intermediate React/Next.js developers who want one project that touches every 2026 buzzword — legitimately.</p>
+        <ul>
+          <li><strong>Watch it if</strong> you want to understand how browser-driving agents actually ship inside a product: session hosting, replay, durable jobs, and live status — not just a Stagehand hello-world.</li>
+          <li><strong>Watch it if</strong> you're building any workflow/automation tool; the React Flow + Trigger.dev + data-passthrough pattern is the reference architecture.</li>
+          <li><strong>Skip it if</strong> you want deep fundamentals — with nine managed services, much of the course is integration work, and pricing/vendor lock-in trade-offs are yours to weigh.</li>
+          <li><strong>Prerequisites:</strong> comfortable React + TypeScript; Next.js familiarity helps. Everything else is introduced service by service.</li>
+        </ul>
+        <p>The pitch that sums up the whole build: type a goal in plain English, watch a real browser in the cloud accomplish it, replay every step it took, and bill for it — all on a canvas your team edits together.</p>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-cols">
+      <div class="foot-col">
+        <h5>Source</h5>
+        <a href="https://www.youtube.com/watch?v=1hnyCQW-B4A">YouTube — the full course ↗</a>
+        <a href="https://www.codewithantonio.com/workshops/build-an-ai-workflow-builder-like-n8n-okxub">Course page — codewithantonio.com ↗</a>
+        <a href="https://www.youtube.com/@codewithantonio">Code With Antonio — channel ↗</a>
+      </div>
+      <div class="foot-col">
+        <h5>Key tools</h5>
+        <a href="https://www.browserbase.com">Browserbase ↗</a>
+        <a href="https://www.stagehand.dev">Stagehand ↗</a>
+        <a href="https://trigger.dev">Trigger.dev ↗</a>
+        <a href="https://liveblocks.io">Liveblocks ↗</a>
+      </div>
+      <div class="foot-col">
+        <h5>More tools</h5>
+        <a href="https://reactflow.dev">React Flow ↗</a>
+        <a href="https://clerk.com">Clerk ↗</a>
+        <a href="https://neon.com">Neon ↗</a>
+        <a href="https://resend.com">Resend ↗</a>
+      </div>
+    </div>
+    <p class="foot-note">// unofficial field notes, compiled 2026-07-18. summarised from the video's public metadata and the official course page (transcript unavailable at time of writing — youtube bot-blocked every fetch route). not affiliated with code with antonio. chapter names and stack per codewithantonio.com.</p>
+  </div>
+</footer>
+
+<script>
+// copy buttons
+document.querySelectorAll('.copy-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const pre=btn.closest('.code').querySelector('pre');
+    navigator.clipboard.writeText(pre.innerText).then(()=>{
+      btn.textContent='copied ✓';btn.classList.add('ok');
+      setTimeout(()=>{btn.textContent='copy';btn.classList.remove('ok')},1600);
+    });
+  });
+});
+
+// toc scroll-spy
+const tocLinks=[...document.querySelectorAll('.toc a')];
+const map=new Map(tocLinks.map(a=>[a.getAttribute('href').slice(1),a]));
+const spy=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      tocLinks.forEach(a=>a.classList.remove('active'));
+      const link=map.get(e.target.id);
+      if(link)link.classList.add('active');
+    }
+  });
+},{rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('.block').forEach(s=>spy.observe(s));
+
+// hero terminal typewriter
+const lines=[
+  {t:'$ relay run "porsche-911-configurator"',c:'t-p'},
+  {t:'▸ trigger  : manual',c:'t-d'},
+  {t:'▸ node 01  agent — real chrome session started (browserbase)',c:'t-d'},
+  {t:'  · goal: configure a porsche 911, grab the share link',c:'t-c'},
+  {t:'  · click "911" → carrera s → gt silver → done',c:'t-c'},
+  {t:'▸ node 02  email — sent via resend ✓',c:'t-ok'},
+  {t:'run complete — session replay available',c:'t-ok'}
+];
+const term=document.getElementById('term');
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduced){
+  lines.forEach(l=>{const s=document.createElement('span');s.className='ln '+l.c;s.textContent=l.t;term.appendChild(s);});
+}else{
+  let li=0,ci=0,cur=null;
+  const caret=document.createElement('span');caret.className='caret';
+  function step(){
+    if(li>=lines.length){caret.remove();return;}
+    if(!cur){cur=document.createElement('span');cur.className='ln '+lines[li].c;term.appendChild(cur);term.appendChild(caret);}
+    cur.textContent=lines[li].t.slice(0,++ci);
+    cur.appendChild(caret);
+    if(ci>=lines[li].t.length){li++;ci=0;cur=null;setTimeout(step,260);}
+    else setTimeout(step,14);
+  }
+  setTimeout(step,600);
+}
+</script>
+</body>
+</html>
